@@ -43,7 +43,7 @@ export default async function MemberHomePage() {
           </div>
           <div className="grid gap-4">
             <Card>
-              <h2 className="text-lg font-black">채널 빠른 탐색</h2>
+              <h2 className="text-lg font-black">리뷰 가능 채널</h2>
               <div className="mt-4 grid gap-2">
                 {channels.map((channel) => (
                   <a key={channel} href={`/member/campaigns?channel=${channel}`} className="flex items-center justify-between rounded-2xl border border-spread-ink/10 px-4 py-3 text-sm font-semibold">

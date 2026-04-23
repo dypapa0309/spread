@@ -7,15 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { channelLabels, formatLabels, industryOptions, localCategoryOptions, productCategoryOptions } from "@/lib/labels";
-import type { CampaignDraftPreset, ChannelType, ExperienceType, FormatType } from "@/types/spread";
+import { channelLabels, industryOptions, localCategoryOptions, productCategoryOptions } from "@/lib/labels";
+import type { CampaignDraftPreset, ChannelType, ExperienceType } from "@/types/spread";
 
 const channels: ChannelType[] = ["threads", "x", "wordpress", "kakao"];
-const formats: FormatType[] = ["one_line", "story", "comparison", "question", "recommendation", "debate"];
 
 export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
   const [selectedChannels, setSelectedChannels] = useState<ChannelType[]>(["threads"]);
-  const [selectedFormats, setSelectedFormats] = useState<FormatType[]>(["one_line"]);
   const [experienceType, setExperienceType] = useState<ExperienceType>("product");
   const [presetTitle, setPresetTitle] = useState("");
   const [offerTitle, setOfferTitle] = useState("");
@@ -73,7 +71,6 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
                     setOfferTitle(preset.offerTitle);
                     setOfferDescription(preset.offerDescription);
                     setSelectedChannels(preset.channels);
-                    setSelectedFormats(preset.formats);
                   }}
                 >
                   <option value="">선택 안 함</option>
@@ -169,15 +166,6 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
               ))}
             </div>
           </FormSection>
-          <FormSection title="포맷 선택">
-            <div className="flex flex-wrap gap-2">
-              {formats.map((format) => (
-                <Chip key={format} selected={selectedFormats.includes(format)} onClick={() => toggle(format, selectedFormats, setSelectedFormats)}>
-                  {formatLabels[format]}
-                </Chip>
-              ))}
-            </div>
-          </FormSection>
           <FormSection title="가이드라인">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="핵심 메시지"><Input placeholder="반드시 남길 관점" /></Field>
@@ -216,7 +204,6 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
         <h2 className="text-xl font-black">설정 요약</h2>
         <div className="mt-4 flex flex-wrap gap-2">
           {selectedChannels.map((channel) => <Badge key={channel} active>{channelLabels[channel]}</Badge>)}
-          {selectedFormats.map((format) => <Badge key={format}>{formatLabels[format]}</Badge>)}
         </div>
         <div
           className="mt-5 aspect-[16/10] rounded-spread border border-spread-ink/10 bg-spread-ink/5 bg-cover bg-center"

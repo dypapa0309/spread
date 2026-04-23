@@ -71,7 +71,7 @@ export function AppShell({ children, role = "member" }: { children: ReactNode; r
               <p>개인정보보호책임자: dypapa0309@gmail.com</p>
             </div>
             <div className="grid content-start gap-2 md:text-right">
-              <Link href="/login" className="font-semibold text-spread-ink">사용자/광고주 로그인</Link>
+              <Link href="/login" className="font-semibold text-spread-ink">로그인 / 회원가입</Link>
               <a href="mailto:dypapa0309@gmail.com">dypapa0309@gmail.com</a>
               <div className="flex flex-wrap gap-3 md:justify-end">
                 <Link href="/terms">이용약관</Link>
@@ -81,7 +81,7 @@ export function AppShell({ children, role = "member" }: { children: ReactNode; r
           </div>
           <div className="flex items-center justify-between gap-3 border-t border-spread-ink/10 pt-4">
             <span>© SPREAD. All rights reserved.</span>
-            <Link href="/admin" className="text-spread-ink/35">운영자</Link>
+            <Link href="/admin" className="text-spread-ink/35">관리자 로그인</Link>
           </div>
         </footer>
       ) : null}

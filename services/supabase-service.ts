@@ -73,7 +73,33 @@ export async function getServerUser(): Promise<User | null> {
     .eq("id", authUser.id)
     .single();
 
-  return data ? mapUser(data) : null;
+  if (data) return mapUser(data);
+
+  // public.users 레코드가 없으면 auth 메타데이터로 자동 생성
+  // (이메일 인증 완료 후 callback이 실패했거나 RLS 미적용 상태에서 가입한 경우)
+  const meta = (authUser.user_metadata ?? {}) as Record<string, unknown>;
+  const fallbackName = String(meta.name ?? authUser.email?.split("@")[0] ?? "사용자");
+  const fallbackNickname = String(meta.nickname ?? authUser.email?.split("@")[0] ?? "user");
+  const role = (meta.role as "member" | "admin" | "brand") ?? "member";
+
+  const { data: created } = await supabase
+    .from("users")
+    .upsert({
+      id: authUser.id,
+      role,
+      name: fallbackName,
+      nickname: fallbackNickname,
+      email: authUser.email!,
+      bio: "",
+      level: 1,
+      score: 0,
+      completed_missions: 0,
+      status: "active"
+    })
+    .select()
+    .single();
+
+  return created ? mapUser(created) : null;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
