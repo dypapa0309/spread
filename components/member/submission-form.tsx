@@ -235,7 +235,7 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
             <div className="mt-4 flex flex-wrap gap-2">
               {result.labels.map((label) => <Badge key={label}>{label}</Badge>)}
             </div>
-            <LinkButton href="/member/submissions" className="mt-5 w-full">내 제출 보기</LinkButton>
+            <LinkButton href="/member/profile#submissions" className="mt-5 w-full">마이에서 제출 보기</LinkButton>
           </Card>
         ) : null}
       </div>

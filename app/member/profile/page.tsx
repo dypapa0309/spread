@@ -17,6 +17,10 @@ export default async function ProfilePage() {
 
   const { user, channels, stats, activePenalty } = profile;
   const submissions = await listMemberSubmissions(user.id);
+  const reviewedSubmissions = submissions.filter((item) => ["approved", "completed", "fulfillment_pending", "auto_approved"].includes(item.status));
+  const averageScore = submissions.length
+    ? Math.round(submissions.reduce((sum, item) => sum + item.autoCheckScore, 0) / submissions.length)
+    : 0;
 
   return (
     <AppShell role="member">
@@ -71,16 +75,31 @@ export default async function ProfilePage() {
             </div>
           </Card>
         </div>
-        <div>
+        <div id="submissions" className="scroll-mt-24">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-black">최근 제출</h2>
-              <p className="mt-1 text-sm text-spread-ink/60">마이에서 내 기록과 처리 상태를 확인합니다.</p>
+              <h2 className="text-2xl font-black">제출 관리</h2>
+              <p className="mt-1 text-sm text-spread-ink/60">마이에서 내 제출 기록, 자동 체크, 처리 상태를 한 번에 확인합니다.</p>
             </div>
           </div>
-          <SubmissionList submissions={submissions.slice(0, 5)} />
+          <Card className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Mini label="전체" value={`${submissions.length}`} />
+            <Mini label="검수 필요" value={`${submissions.filter((item) => item.status === "needs_review").length}`} />
+            <Mini label="승인/완료" value={`${reviewedSubmissions.length}`} />
+            <Mini label="평균 점수" value={`${averageScore}`} />
+          </Card>
+          <SubmissionList submissions={submissions} />
         </div>
       </Section>
     </AppShell>
+  );
+}
+
+function Mini({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-spread-ink/55">{label}</p>
+      <p className="mt-1 text-2xl font-black">{value}</p>
+    </div>
   );
 }
