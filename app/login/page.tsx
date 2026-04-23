@@ -41,6 +41,7 @@ function translateAuthError(message: string): string {
 }
 
 type Portal = "member" | "brand";
+type AuthRole = "member" | "admin" | "brand";
 type MemberTab = "login" | "signup";
 type BrandTab = "login" | "signup";
 
@@ -115,9 +116,15 @@ function MemberLoginForm() {
     try {
       const { createClient } = await import("@/supabase/client");
       const supabase = createClient();
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) { setError(translateAuthError(authError.message)); setLoading(false); return; }
       const role = await getCurrentUserRole("member");
+      if (!isPortalRoleAllowed("member", role)) {
+        await logoutAfterRoleMismatch();
+        setError("광고주 계정입니다. 광고주 탭에서 로그인해 주세요.");
+        setLoading(false);
+        return;
+      }
       router.push(role === "admin" ? "/admin" : role === "brand" ? "/brand" : "/member");
       router.refresh();
     } catch { setError("로그인 중 오류가 발생했습니다."); setLoading(false); }
@@ -140,7 +147,7 @@ function MemberLoginForm() {
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
           </Field>
         )}
-        {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+        {error && <p className="rounded-2xl border border-spread-point/30 bg-spread-point/10 px-4 py-3 text-sm font-semibold text-spread-point">{error}</p>}
         <Button type="submit" disabled={loading}>{loading ? "로그인 중..." : "로그인"}</Button>
       </form>
     </Card>
@@ -288,9 +295,15 @@ function BrandLoginForm() {
     try {
       const { createClient } = await import("@/supabase/client");
       const supabase = createClient();
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) { setError(translateAuthError(authError.message)); setLoading(false); return; }
       const role = await getCurrentUserRole("brand");
+      if (!isPortalRoleAllowed("brand", role)) {
+        await logoutAfterRoleMismatch();
+        setError("사용자 계정입니다. 사용자 탭에서 로그인해 주세요.");
+        setLoading(false);
+        return;
+      }
       router.push(role === "admin" ? "/admin" : role === "brand" ? "/brand" : "/member");
       router.refresh();
     } catch { setError("로그인 중 오류가 발생했습니다."); setLoading(false); }
@@ -314,7 +327,7 @@ function BrandLoginForm() {
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
           </Field>
         )}
-        {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+        {error && <p className="rounded-2xl border border-spread-point/30 bg-spread-point/10 px-4 py-3 text-sm font-semibold text-spread-point">{error}</p>}
         <Button type="submit" disabled={loading}>{loading ? "로그인 중..." : "로그인"}</Button>
       </form>
       <p className="mt-4 text-xs text-spread-ink/50">계정 문의: dypapa0309@gmail.com</p>
@@ -322,12 +335,25 @@ function BrandLoginForm() {
   );
 }
 
-async function getCurrentUserRole(fallback: "member" | "brand") {
+async function getCurrentUserRole(fallback: Portal): Promise<AuthRole> {
   const response = await fetch("/api/auth/role", { cache: "no-store" });
   if (!response.ok) return fallback;
 
-  const result = (await response.json()) as { ok?: boolean; role?: "member" | "admin" | "brand" };
+  const result = (await response.json()) as { ok?: boolean; role?: AuthRole };
   return result.ok && result.role ? result.role : fallback;
+}
+
+function isPortalRoleAllowed(portal: Portal, role: AuthRole) {
+  if (role === "admin") return true;
+  return portal === role;
+}
+
+async function logoutAfterRoleMismatch() {
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } catch {
+    // 세션 정리가 실패해도 다음 로그인 시도를 막지 않는다.
+  }
 }
 
 function BrandSignupForm() {
