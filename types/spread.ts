@@ -134,7 +134,7 @@ export type CampaignGuideline = {
   prohibitedExpressions: string[];
   requiredHashtags: string[];
   requiredLinks: string[];
-  minLiveHours: number;
+  contentRetentionMonths: number;
   minTextLength: number;
   requiredKeywordCount: number;
   allowPrivateAccount: boolean;

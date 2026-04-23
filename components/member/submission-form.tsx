@@ -152,7 +152,7 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
             ))}
           </div>
           <p className="mt-4 text-sm leading-6 text-spread-ink/65">
-            일부 채널은 자동 승인되지 않고 운영자 검수로 넘어갑니다. 게시물은 최소 유지 시간 이후 체험 완료 처리됩니다.
+            일부 채널은 자동 승인되지 않고 운영자 검수로 넘어갑니다. 게시물은 6개월 유지 조건을 기준으로 체험 완료 처리됩니다.
           </p>
           {deadlinePenalty.daysLate > 0 ? (
             <p className="mt-3 rounded-2xl border border-spread-point bg-spread-point/10 p-3 text-sm font-semibold text-spread-point">

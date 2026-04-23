@@ -235,7 +235,7 @@ export function getSubmissionChecklist(channelType: ChannelType): SubmissionChec
     },
     {
       id: "retention",
-      label: "게시물 유지 시간을 확인했습니다",
+      label: "게시물 6개월 유지 조건을 확인했습니다",
       required: true,
       channelTypes: ["threads", "x", "wordpress", "kakao"],
       checked: false

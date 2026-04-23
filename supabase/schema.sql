@@ -107,7 +107,7 @@ create table public.campaign_guidelines (
   prohibited_expressions text[] default '{}',
   required_hashtags text[] default '{}',
   required_links text[] default '{}',
-  min_live_hours int default 24,
+  content_retention_months int default 6,
   min_text_length int default 80,
   required_keyword_count int default 2,
   allow_private_account boolean default false,

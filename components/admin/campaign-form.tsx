@@ -201,7 +201,7 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
                   <option value="auto">자동</option>
                 </Select>
               </Field>
-              <Field label="최소 유지 시간"><Input type="number" placeholder="24" /></Field>
+              <Field label="콘텐츠 유지기간"><Input type="number" placeholder="6" /></Field>
               <Field label="최소 글자 수"><Input type="number" placeholder="80" /></Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

@@ -88,7 +88,7 @@ export function CampaignDetail({ campaign, activePenalty }: { campaign: Campaign
             <Row label="선정" value={`${campaign.selectedCount}명`} />
             <Row label="신청 마감" value={shortDate(campaign.applyEndAt)} />
             <Row label="제출 마감" value={shortDate(campaign.submissionDueAt)} />
-            <Row label="유지 시간" value={`${campaign.guideline.minLiveHours}시간`} />
+            <Row label="콘텐츠 유지" value={`${campaign.guideline.contentRetentionMonths}개월`} />
             <Row label="최소 길이" value={`${campaign.guideline.minTextLength}자`} />
           </div>
           {cta.disabled ? (

@@ -251,13 +251,13 @@ export const guidelines: CampaignGuideline[] = campaigns.map((campaign) => ({
   prohibitedExpressions: ["무조건 최고", "100% 보장", "광고 아님"],
   requiredHashtags: campaign.brandId === "brand-2" ? ["#MellowBean", "#커피구독"] : ["#SPREAD", "#미션"],
   requiredLinks: campaign.id === "camp-4" ? [] : [brands.find((brand) => brand.id === campaign.brandId)?.websiteUrl ?? ""],
-  minLiveHours: campaign.id === "camp-3" ? 72 : 24,
+  contentRetentionMonths: 6,
   minTextLength: campaign.id === "camp-1" ? 30 : campaign.id === "camp-3" ? 700 : 80,
   requiredKeywordCount: campaign.id === "camp-3" ? 4 : 2,
   allowPrivateAccount: campaign.id === "camp-4",
   autoApprovalEnabled: campaign.reviewMode !== "manual",
   autoRejectionEnabled: true,
-  extraNote: campaign.id === "camp-4" ? "KakaoTalk 피드는 스크린샷 인증이 필요합니다." : "게시물은 최소 유지 시간 이후 체험 완료 처리됩니다."
+  extraNote: campaign.id === "camp-4" ? "KakaoTalk 피드는 스크린샷 인증이 필요합니다." : "게시물은 6개월 유지 조건을 확인한 뒤 체험 완료 처리됩니다."
 }));
 
 const result = (score: number, hasFail = false) => ({
