@@ -38,6 +38,14 @@ export type SaveCampaignResult =
   | { ok: false; message: string };
 
 export async function saveCampaignRecord(input: SaveCampaignInput): Promise<SaveCampaignResult> {
+  return persistCampaignRecord(input);
+}
+
+export async function updateCampaignRecord(campaignId: string, input: SaveCampaignInput): Promise<SaveCampaignResult> {
+  return persistCampaignRecord(input, campaignId);
+}
+
+async function persistCampaignRecord(input: SaveCampaignInput, campaignId?: string): Promise<SaveCampaignResult> {
   const userSupabase = await createClient();
   const {
     data: { user: authUser }
@@ -81,7 +89,7 @@ export async function saveCampaignRecord(input: SaveCampaignInput): Promise<Save
     };
   }
 
-  if (currentUser.role === "brand") {
+  if (!campaignId && currentUser.role === "brand") {
     const { count, error: countError } = await adminSupabase
       .from("campaigns")
       .select("id", { count: "exact", head: true })
@@ -110,57 +118,114 @@ export async function saveCampaignRecord(input: SaveCampaignInput): Promise<Save
   if (!input.channels.length) return { ok: false, message: "채널을 하나 이상 선택해 주세요." };
   if (!input.formats.length) return { ok: false, message: "미션 포맷을 하나 이상 선택해 주세요." };
 
-  const { data: campaign, error: campaignError } = await adminSupabase
-    .from("campaigns")
-    .insert({
-      brand_id: brandId,
-      title,
-      slug: makeSlug(title),
-      summary,
-      description,
-      cover_image_url: input.coverImageUrl?.trim() || null,
-      product_name: input.productName.trim() || offerTitle,
-      experience_type: input.experienceType,
-      industry: input.industry,
-      category: input.category,
-      offer_title: offerTitle,
-      offer_description: offerDescription,
-      offer_value_label: input.offerValueLabel.trim() || (input.experienceType === "product" ? "제품 배송" : "방문 체험"),
-      region_province: input.experienceType === "local" ? input.regionProvince?.trim() || null : null,
-      region_district: input.experienceType === "local" ? input.regionDistrict?.trim() || null : null,
-      venue_address: input.experienceType === "local" ? input.venueAddress?.trim() || null : null,
-      venue_name: input.experienceType === "local" ? input.venueName?.trim() || offerTitle : null,
-      privacy_retention_days: clampNumber(input.privacyRetentionDays, 30, 1, 365),
-      start_at: now.toISOString(),
-      end_at: submissionDueAt,
-      apply_end_at: applyEndAt,
-      submission_due_at: submissionDueAt,
-      recruit_limit: clampNumber(input.recruitLimit, 1, 1, 10000),
-      status: "open",
-      review_mode: input.reviewMode,
-      visibility: "public",
-      created_by: currentUser.id
-    })
-    .select("id")
-    .single();
+  const campaignPayload = {
+    brand_id: brandId,
+    title,
+    slug: makeSlug(title),
+    summary,
+    description,
+    cover_image_url: input.coverImageUrl?.trim() || null,
+    product_name: input.productName.trim() || offerTitle,
+    experience_type: input.experienceType,
+    industry: input.industry,
+    category: input.category,
+    offer_title: offerTitle,
+    offer_description: offerDescription,
+    offer_value_label: input.offerValueLabel.trim() || (input.experienceType === "product" ? "제품 배송" : "방문 체험"),
+    region_province: input.experienceType === "local" ? input.regionProvince?.trim() || null : null,
+    region_district: input.experienceType === "local" ? input.regionDistrict?.trim() || null : null,
+    venue_address: input.experienceType === "local" ? input.venueAddress?.trim() || null : null,
+    venue_name: input.experienceType === "local" ? input.venueName?.trim() || offerTitle : null,
+    privacy_retention_days: clampNumber(input.privacyRetentionDays, 30, 1, 365),
+    start_at: now.toISOString(),
+    end_at: submissionDueAt,
+    apply_end_at: applyEndAt,
+    submission_due_at: submissionDueAt,
+    recruit_limit: clampNumber(input.recruitLimit, 1, 1, 10000),
+    status: "open",
+    review_mode: input.reviewMode,
+    visibility: "public",
+    created_by: currentUser.id
+  };
+
+  if (campaignId) {
+    const { data: existing, error: existingError } = await adminSupabase
+      .from("campaigns")
+      .select("id, brand_id")
+      .eq("id", campaignId)
+      .maybeSingle();
+
+    if (existingError) return { ok: false, message: `캠페인 확인 실패: ${existingError.message}` };
+    if (!existing) return { ok: false, message: "수정할 캠페인을 찾을 수 없습니다." };
+    if (currentUser.role === "brand" && existing.brand_id !== brandId) {
+      return { ok: false, message: "내 브랜드 캠페인만 수정할 수 있습니다." };
+    }
+  }
+
+  const updatePayload = {
+    title: campaignPayload.title,
+    summary: campaignPayload.summary,
+    description: campaignPayload.description,
+    cover_image_url: campaignPayload.cover_image_url,
+    product_name: campaignPayload.product_name,
+    experience_type: campaignPayload.experience_type,
+    industry: campaignPayload.industry,
+    category: campaignPayload.category,
+    offer_title: campaignPayload.offer_title,
+    offer_description: campaignPayload.offer_description,
+    offer_value_label: campaignPayload.offer_value_label,
+    region_province: campaignPayload.region_province,
+    region_district: campaignPayload.region_district,
+    venue_address: campaignPayload.venue_address,
+    venue_name: campaignPayload.venue_name,
+    privacy_retention_days: campaignPayload.privacy_retention_days,
+    end_at: campaignPayload.end_at,
+    apply_end_at: campaignPayload.apply_end_at,
+    submission_due_at: campaignPayload.submission_due_at,
+    recruit_limit: campaignPayload.recruit_limit,
+    status: campaignPayload.status,
+    review_mode: campaignPayload.review_mode,
+    visibility: campaignPayload.visibility
+  };
+
+  const { data: campaign, error: campaignError } = campaignId
+    ? await adminSupabase
+        .from("campaigns")
+        .update(updatePayload)
+        .eq("id", campaignId)
+        .select("id")
+        .single()
+    : await adminSupabase
+        .from("campaigns")
+        .insert(campaignPayload)
+        .select("id")
+        .single();
 
   if (campaignError || !campaign) {
     return { ok: false, message: `캠페인 저장 실패: ${campaignError?.message ?? "알 수 없는 오류"}` };
   }
 
-  const campaignId = campaign.id as string;
+  const savedCampaignId = campaign.id as string;
+
+  if (input.channels.length && input.formats.length) {
+    await Promise.all([
+      adminSupabase.from("campaign_channels").delete().eq("campaign_id", savedCampaignId),
+      adminSupabase.from("campaign_formats").delete().eq("campaign_id", savedCampaignId),
+      adminSupabase.from("campaign_guidelines").delete().eq("campaign_id", savedCampaignId)
+    ]);
+  }
 
   const [{ error: channelsError }, { error: formatsError }, { error: guidelineError }] = await Promise.all([
     adminSupabase.from("campaign_channels").insert(input.channels.map((channelType) => ({
-      campaign_id: campaignId,
+      campaign_id: savedCampaignId,
       channel_type: channelType
     }))),
     adminSupabase.from("campaign_formats").insert(input.formats.map((formatType) => ({
-      campaign_id: campaignId,
+      campaign_id: savedCampaignId,
       format_type: formatType
     }))),
     adminSupabase.from("campaign_guidelines").insert({
-      campaign_id: campaignId,
+      campaign_id: savedCampaignId,
       key_message: input.keyMessage.trim() || title,
       required_points: input.requiredPoints,
       prohibited_expressions: input.prohibitedExpressions,
@@ -178,11 +243,11 @@ export async function saveCampaignRecord(input: SaveCampaignInput): Promise<Save
 
   const relationError = channelsError ?? formatsError ?? guidelineError;
   if (relationError) {
-    await adminSupabase.from("campaigns").delete().eq("id", campaignId);
+    if (!campaignId) await adminSupabase.from("campaigns").delete().eq("id", savedCampaignId);
     return { ok: false, message: `캠페인 부가 정보 저장 실패: ${relationError.message}` };
   }
 
-  return { ok: true, campaignId };
+  return { ok: true, campaignId: savedCampaignId };
 }
 
 async function resolveCampaignBrandId({

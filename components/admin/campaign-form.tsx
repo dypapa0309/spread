@@ -10,7 +10,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { channelLabels, formatLabels, industryOptions, localCategoryOptions, productCategoryOptions } from "@/lib/labels";
 import { uploadCampaignCoverImage } from "@/services/campaign-assets";
 import type { SaveCampaignInput, SaveCampaignResult } from "@/services/campaign-write-service";
-import type { CampaignDraftPreset, ChannelType, ExperienceType, FormatType, Industry, ReviewMode } from "@/types/spread";
+import type { CampaignDraftPreset, CampaignView, ChannelType, ExperienceType, FormatType, Industry, ReviewMode } from "@/types/spread";
 
 const channels: ChannelType[] = ["threads", "x", "wordpress", "kakao"];
 const formats: FormatType[] = ["one_line", "story", "comparison", "question", "recommendation", "debate"];
@@ -44,21 +44,21 @@ const presets: CampaignDraftPreset[] = [
   }
 ];
 
-export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
-  const [selectedChannels, setSelectedChannels] = useState<ChannelType[]>(["threads"]);
-  const [selectedFormats, setSelectedFormats] = useState<FormatType[]>(["one_line"]);
-  const [experienceType, setExperienceType] = useState<ExperienceType>("product");
-  const [industry, setIndustry] = useState<Industry>("푸드");
-  const [category, setCategory] = useState<string>("식품");
-  const [title, setTitle] = useState("");
-  const [productName, setProductName] = useState("");
-  const [summary, setSummary] = useState("");
-  const [description, setDescription] = useState("");
-  const [offerTitle, setOfferTitle] = useState("");
-  const [offerDescription, setOfferDescription] = useState("");
+export function CampaignForm({ mode = "new", initialCampaign }: { mode?: "new" | "edit"; initialCampaign?: CampaignView }) {
+  const [selectedChannels, setSelectedChannels] = useState<ChannelType[]>(initialCampaign?.channels ?? ["threads"]);
+  const [selectedFormats, setSelectedFormats] = useState<FormatType[]>(initialCampaign?.formats.length ? initialCampaign.formats : ["one_line"]);
+  const [experienceType, setExperienceType] = useState<ExperienceType>(initialCampaign?.experienceType ?? "product");
+  const [industry, setIndustry] = useState<Industry>(initialCampaign?.industry ?? "푸드");
+  const [category, setCategory] = useState<string>(initialCampaign?.category ?? "식품");
+  const [title, setTitle] = useState(initialCampaign?.title ?? "");
+  const [productName, setProductName] = useState(initialCampaign?.productName ?? "");
+  const [summary, setSummary] = useState(initialCampaign?.summary ?? "");
+  const [description, setDescription] = useState(initialCampaign?.description ?? "");
+  const [offerTitle, setOfferTitle] = useState(initialCampaign?.offerTitle ?? "");
+  const [offerDescription, setOfferDescription] = useState(initialCampaign?.offerDescription ?? "");
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImageUrl, setCoverImageUrl] = useState(
-    mode === "edit" ? "https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=1200&auto=format&fit=crop" : ""
+    initialCampaign?.coverImageUrl ?? ""
   );
   const [saveMessage, setSaveMessage] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -123,8 +123,8 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
           minTextLength: readNumber(formData, "minTextLength")
         };
 
-        const response = await fetch("/api/campaigns", {
-          method: "POST",
+        const response = await fetch(initialCampaign ? `/api/campaigns/${initialCampaign.id}` : "/api/campaigns", {
+          method: initialCampaign ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
@@ -135,7 +135,7 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
           return;
         }
 
-        setSaveMessage(`저장되었습니다. 캠페인 ID: ${result.campaignId}`);
+        setSaveMessage(`${initialCampaign ? "수정" : "저장"}되었습니다. 캠페인 ID: ${result.campaignId}`);
       } catch (error) {
         setSaveError(error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.");
       }
@@ -255,7 +255,7 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
                   <Input value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="샘플팩 / 이용권 / 키트" />
                 </Field>
                 <Field label="제공 방식">
-                  <Input name="offerValueLabel" placeholder="제품 배송" />
+                  <Input name="offerValueLabel" defaultValue={initialCampaign?.offerValueLabel ?? ""} placeholder="제품 배송" />
                 </Field>
                 <div className="sm:col-span-2">
                   <Field label="제공 구성">
@@ -265,12 +265,12 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="시/도"><Input name="regionProvince" placeholder="서울" /></Field>
-                <Field label="시군구"><Input name="regionDistrict" placeholder="성동구" /></Field>
+                <Field label="시/도"><Input name="regionProvince" defaultValue={initialCampaign?.regionProvince ?? ""} placeholder="서울" /></Field>
+                <Field label="시군구"><Input name="regionDistrict" defaultValue={initialCampaign?.regionDistrict ?? ""} placeholder="성동구" /></Field>
                 <Field label="장소명">
                   <Input name="venueName" value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="브랜드 쇼룸" />
                 </Field>
-                <Field label="방문 주소"><Input name="venueAddress" placeholder="도로명 주소" /></Field>
+                <Field label="방문 주소"><Input name="venueAddress" defaultValue={initialCampaign?.venueAddress ?? ""} placeholder="도로명 주소" /></Field>
                 <div className="sm:col-span-2">
                   <Field label="운영/예약 안내">
                     <Textarea value={offerDescription} onChange={(e) => setOfferDescription(e.target.value)} placeholder="방문 가능 시간, 예약 방식, 주의사항" />
@@ -311,13 +311,13 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
         <Card>
           <SectionTitle>가이드라인</SectionTitle>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="핵심 메시지"><Input name="keyMessage" placeholder="반드시 남길 관점이나 문구" /></Field>
-            <Field label="필수 해시태그"><Input name="requiredHashtags" placeholder="#브랜드명, #캠페인태그" /></Field>
+            <Field label="핵심 메시지"><Input name="keyMessage" defaultValue={initialCampaign?.guideline.keyMessage ?? ""} placeholder="반드시 남길 관점이나 문구" /></Field>
+            <Field label="필수 해시태그"><Input name="requiredHashtags" defaultValue={initialCampaign?.guideline.requiredHashtags.join(", ") ?? ""} placeholder="#브랜드명, #캠페인태그" /></Field>
             <Field label="필수 포인트">
-              <Textarea name="requiredPoints" placeholder="한 줄에 하나씩 입력&#10;예) 실제 사용 상황 포함&#10;예) 추천 대상 명시" />
+              <Textarea name="requiredPoints" defaultValue={initialCampaign?.guideline.requiredPoints.join("\n") ?? ""} placeholder="한 줄에 하나씩 입력&#10;예) 실제 사용 상황 포함&#10;예) 추천 대상 명시" />
             </Field>
             <Field label="금지 표현">
-              <Textarea name="prohibitedExpressions" placeholder="한 줄에 하나씩 입력&#10;예) 무조건 최고&#10;예) 100% 보장" />
+              <Textarea name="prohibitedExpressions" defaultValue={initialCampaign?.guideline.prohibitedExpressions.join("\n") ?? ""} placeholder="한 줄에 하나씩 입력&#10;예) 무조건 최고&#10;예) 100% 보장" />
             </Field>
           </div>
         </Card>
@@ -326,10 +326,10 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
         <Card>
           <SectionTitle>모집 & 일정</SectionTitle>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="모집 인원"><Input name="recruitLimit" type="number" placeholder="80" /></Field>
-            <Field label="개인정보 보유일 (일)"><Input name="privacyRetentionDays" type="number" placeholder="180" /></Field>
-            <Field label="신청 마감"><Input name="applyEndAt" type="datetime-local" /></Field>
-            <Field label="제출 마감"><Input name="submissionDueAt" type="datetime-local" /></Field>
+            <Field label="모집 인원"><Input name="recruitLimit" type="number" defaultValue={initialCampaign?.recruitLimit ?? ""} placeholder="80" /></Field>
+            <Field label="개인정보 보유일 (일)"><Input name="privacyRetentionDays" type="number" defaultValue={initialCampaign?.privacyRetentionDays ?? ""} placeholder="180" /></Field>
+            <Field label="신청 마감"><Input name="applyEndAt" type="datetime-local" defaultValue={toDatetimeLocal(initialCampaign?.applyEndAt)} /></Field>
+            <Field label="제출 마감"><Input name="submissionDueAt" type="datetime-local" defaultValue={toDatetimeLocal(initialCampaign?.submissionDueAt)} /></Field>
           </div>
         </Card>
 
@@ -338,14 +338,14 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
           <SectionTitle>검수 정책</SectionTitle>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <Field label="검수 모드">
-              <Select name="reviewMode" defaultValue="semi_auto">
+              <Select name="reviewMode" defaultValue={initialCampaign?.reviewMode ?? "semi_auto"}>
                 <option value="manual">운영자 검수</option>
                 <option value="semi_auto">반자동</option>
                 <option value="auto">자동</option>
               </Select>
             </Field>
-            <Field label="콘텐츠 유지기간 (개월)"><Input name="contentRetentionMonths" type="number" placeholder="6" /></Field>
-            <Field label="최소 글자 수"><Input name="minTextLength" type="number" placeholder="80" /></Field>
+            <Field label="콘텐츠 유지기간 (개월)"><Input name="contentRetentionMonths" type="number" defaultValue={initialCampaign?.guideline.contentRetentionMonths ?? ""} placeholder="6" /></Field>
+            <Field label="최소 글자 수"><Input name="minTextLength" type="number" defaultValue={initialCampaign?.guideline.minTextLength ?? ""} placeholder="80" /></Field>
           </div>
         </Card>
 
@@ -411,7 +411,9 @@ function readString(formData: FormData, key: string, fallback = "") {
 }
 
 function readNumber(formData: FormData, key: string) {
-  const value = Number(formData.get(key));
+  const raw = String(formData.get(key) ?? "").trim();
+  if (!raw) return Number.NaN;
+  const value = Number(raw);
   return Number.isFinite(value) ? value : 0;
 }
 
@@ -420,4 +422,11 @@ function splitList(value: string) {
     .split(/\n|,/)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function toDatetimeLocal(value?: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
