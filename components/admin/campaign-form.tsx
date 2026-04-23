@@ -2,7 +2,6 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { ImagePlus } from "lucide-react";
-import { saveCampaign } from "@/app/admin/campaigns/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { Chip } from "@/components/ui/chip";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { channelLabels, formatLabels, industryOptions, localCategoryOptions, productCategoryOptions } from "@/lib/labels";
 import { uploadCampaignCoverImage } from "@/services/campaign-assets";
+import type { SaveCampaignInput, SaveCampaignResult } from "@/services/campaign-write-service";
 import type { CampaignDraftPreset, ChannelType, ExperienceType, FormatType, Industry, ReviewMode } from "@/types/spread";
 
 const channels: ChannelType[] = ["threads", "x", "wordpress", "kakao"];
@@ -92,7 +92,7 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
           setCoverImageUrl(nextCoverImageUrl);
         }
 
-        const result = await saveCampaign({
+        const payload: SaveCampaignInput = {
           title,
           productName,
           summary,
@@ -121,7 +121,14 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
           reviewMode: readString(formData, "reviewMode", "semi_auto") as ReviewMode,
           contentRetentionMonths: readNumber(formData, "contentRetentionMonths"),
           minTextLength: readNumber(formData, "minTextLength")
+        };
+
+        const response = await fetch("/api/campaigns", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
         });
+        const result = (await response.json()) as SaveCampaignResult;
 
         if (!result.ok) {
           setSaveError(result.message);

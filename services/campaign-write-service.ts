@@ -1,7 +1,5 @@
-"use server";
-
-import { createClient } from "@/supabase/server";
 import { createAdminClient } from "@/supabase/admin";
+import { createClient } from "@/supabase/server";
 import type { ChannelType, ExperienceType, FormatType, Industry, ReviewMode } from "@/types/spread";
 
 export type SaveCampaignInput = {
@@ -39,7 +37,7 @@ export type SaveCampaignResult =
   | { ok: true; campaignId: string }
   | { ok: false; message: string };
 
-export async function saveCampaign(input: SaveCampaignInput): Promise<SaveCampaignResult> {
+export async function saveCampaignRecord(input: SaveCampaignInput): Promise<SaveCampaignResult> {
   const userSupabase = await createClient();
   const {
     data: { user: authUser }
