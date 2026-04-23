@@ -8,7 +8,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { PrivacyConsent } from "@/components/privacy-consent";
 import { channelLabels, experienceTypeLabels, formatLabels, shortDate, submissionStatusLabels } from "@/lib/labels";
 import { calculateDeadlinePenalty, determineSubmissionStatus, runSubmissionAutoCheck } from "@/services/submission-auto-check";
-import { getSubmissionChecklist } from "@/services/spread-service";
+import { getSubmissionChecklist } from "@/lib/client-helpers";
 import type { CampaignView, ChannelType, FormatType, SubmissionEligibility, SubmissionStatus } from "@/types/spread";
 
 export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignView; eligibility: SubmissionEligibility }) {

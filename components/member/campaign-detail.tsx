@@ -5,7 +5,7 @@ import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Badge } from "@/components/ui/badge";
-import { getApplicationCta } from "@/services/spread-service";
+import { getApplicationCta } from "@/lib/client-helpers";
 import { channelLabels, experienceTypeLabels, formatLabels, formatTips, reviewModeLabels, shortDate } from "@/lib/labels";
 import type { CampaignView, FormatType, UserPenalty } from "@/types/spread";
 
