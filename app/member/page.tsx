@@ -28,13 +28,12 @@ export default async function MemberHomePage() {
                 <MemberStatsModal user={user} />
               </div>
             )}
-            <p className="text-sm font-bold text-spread-point">오늘 가능한 미션</p>
-            <h1 className="mt-2 text-4xl font-black">안녕하세요, {nickname}님</h1>
+            <h1 className="text-4xl font-black">안녕하세요, {nickname}님</h1>
           </div>
         </div>
         <div className="grid gap-5 lg:grid-cols-[1.4fr_0.8fr]">
           <div className="grid gap-4">
-            <h2 className="text-2xl font-black">추천 캠페인</h2>
+            <h2 className="text-2xl font-black text-spread-point">추천 캠페인</h2>
             <div className="grid gap-4 md:grid-cols-2">
               {campaigns.slice(0, 2).map((campaign) => (
                 <CampaignCard key={campaign.id} campaign={campaign} />

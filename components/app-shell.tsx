@@ -7,7 +7,7 @@ const memberNav = [
   ["홈", "/member"],
   ["캠페인", "/member/campaigns"],
   ["제출", "/member/submissions"],
-  ["마이", "/member/profile"]
+  ["프로필", "/member/profile"]
 ];
 
 const adminNav = [
@@ -71,7 +71,6 @@ export function AppShell({ children, role = "member" }: { children: ReactNode; r
               <p>개인정보보호책임자: dypapa0309@gmail.com</p>
             </div>
             <div className="grid content-start gap-2 md:text-right">
-              <Link href="/login" className="font-semibold text-spread-ink">로그인 / 회원가입</Link>
               <a href="mailto:dypapa0309@gmail.com">dypapa0309@gmail.com</a>
               <div className="flex flex-wrap gap-3 md:justify-end">
                 <Link href="/terms">이용약관</Link>
