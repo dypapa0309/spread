@@ -34,6 +34,8 @@ function translateAuthError(message: string): string {
   if (message.includes("Email not confirmed")) return "이메일 인증이 완료되지 않았습니다. 받은 편지함을 확인해 주세요.";
   if (message.includes("Password should be")) return "비밀번호는 6자 이상이어야 합니다.";
   if (message.includes("Unable to validate email")) return "유효하지 않은 이메일 형식입니다.";
+  if (message.includes("Error sending confirmation email")) return "인증 이메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+  if (message.includes("Signup is disabled")) return "현재 회원가입이 비활성화 상태입니다. 관리자에게 문의해 주세요.";
   return message;
 }
 
