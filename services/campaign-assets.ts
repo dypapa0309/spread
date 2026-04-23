@@ -2,7 +2,7 @@ import { createClient } from "@/supabase/client";
 
 const CAMPAIGN_COVERS_BUCKET = "campaign-covers";
 
-export async function uploadCampaignCoverImage(file: File, campaignId: string) {
+export async function uploadCampaignCoverImage(file: File, campaignId = "drafts") {
   const supabase = createClient();
   const extension = file.name.split(".").pop() ?? "jpg";
   const path = `${campaignId}/${crypto.randomUUID()}.${extension}`;

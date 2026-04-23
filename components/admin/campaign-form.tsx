@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import { ImagePlus } from "lucide-react";
+import { saveCampaign } from "@/app/admin/campaigns/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { channelLabels, industryOptions, localCategoryOptions, productCategoryOptions } from "@/lib/labels";
-import type { CampaignDraftPreset, ChannelType, ExperienceType } from "@/types/spread";
+import { channelLabels, formatLabels, industryOptions, localCategoryOptions, productCategoryOptions } from "@/lib/labels";
+import { uploadCampaignCoverImage } from "@/services/campaign-assets";
+import type { CampaignDraftPreset, ChannelType, ExperienceType, FormatType, Industry, ReviewMode } from "@/types/spread";
 
 const channels: ChannelType[] = ["threads", "x", "wordpress", "kakao"];
+const formats: FormatType[] = ["one_line", "story", "comparison", "question", "recommendation", "debate"];
 
 const presets: CampaignDraftPreset[] = [
   {
@@ -43,17 +46,23 @@ const presets: CampaignDraftPreset[] = [
 
 export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
   const [selectedChannels, setSelectedChannels] = useState<ChannelType[]>(["threads"]);
+  const [selectedFormats, setSelectedFormats] = useState<FormatType[]>(["one_line"]);
   const [experienceType, setExperienceType] = useState<ExperienceType>("product");
+  const [industry, setIndustry] = useState<Industry>("푸드");
+  const [category, setCategory] = useState<string>("식품");
   const [title, setTitle] = useState("");
   const [productName, setProductName] = useState("");
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
   const [offerTitle, setOfferTitle] = useState("");
   const [offerDescription, setOfferDescription] = useState("");
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImageUrl, setCoverImageUrl] = useState(
     mode === "edit" ? "https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=1200&auto=format&fit=crop" : ""
   );
-  const [saved, setSaved] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   function applyPreset(sourceCampaignId: string) {
     const preset = presets.find((p) => p.sourceCampaignId === sourceCampaignId);
@@ -63,12 +72,73 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
     setOfferTitle(preset.offerTitle);
     setOfferDescription(preset.offerDescription);
     setSelectedChannels(preset.channels);
+    setSelectedFormats(preset.formats.length ? preset.formats : ["one_line"]);
+    setIndustry(preset.industry);
+    setCategory(preset.category);
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaveMessage("");
+    setSaveError("");
+
+    const formData = new FormData(event.currentTarget);
+
+    startTransition(async () => {
+      try {
+        let nextCoverImageUrl = coverImageUrl;
+        if (coverImageFile) {
+          nextCoverImageUrl = await uploadCampaignCoverImage(coverImageFile);
+          setCoverImageUrl(nextCoverImageUrl);
+        }
+
+        const result = await saveCampaign({
+          title,
+          productName,
+          summary,
+          description,
+          coverImageUrl: nextCoverImageUrl.startsWith("blob:") ? "" : nextCoverImageUrl,
+          experienceType,
+          industry,
+          category,
+          offerTitle,
+          offerDescription,
+          offerValueLabel: readString(formData, "offerValueLabel") || (experienceType === "product" ? "제품 배송" : "방문 체험"),
+          regionProvince: readString(formData, "regionProvince"),
+          regionDistrict: readString(formData, "regionDistrict"),
+          venueAddress: readString(formData, "venueAddress"),
+          venueName: readString(formData, "venueName") || offerTitle,
+          channels: selectedChannels,
+          formats: selectedFormats,
+          keyMessage: readString(formData, "keyMessage"),
+          requiredHashtags: splitList(readString(formData, "requiredHashtags")),
+          requiredPoints: splitList(readString(formData, "requiredPoints")),
+          prohibitedExpressions: splitList(readString(formData, "prohibitedExpressions")),
+          recruitLimit: readNumber(formData, "recruitLimit"),
+          privacyRetentionDays: readNumber(formData, "privacyRetentionDays"),
+          applyEndAt: readString(formData, "applyEndAt"),
+          submissionDueAt: readString(formData, "submissionDueAt"),
+          reviewMode: readString(formData, "reviewMode", "semi_auto") as ReviewMode,
+          contentRetentionMonths: readNumber(formData, "contentRetentionMonths"),
+          minTextLength: readNumber(formData, "minTextLength")
+        });
+
+        if (!result.ok) {
+          setSaveError(result.message);
+          return;
+        }
+
+        setSaveMessage(`저장되었습니다. 캠페인 ID: ${result.campaignId}`);
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.");
+      }
+    });
   }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
       {/* ── 메인 폼 ── */}
-      <div className="grid gap-5">
+      <form className="grid gap-5" onSubmit={handleSubmit}>
 
         {/* 이전 캠페인 불러오기 */}
         {mode === "new" && (
@@ -104,7 +174,10 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
                   accept="image/*"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) setCoverImageUrl(URL.createObjectURL(file));
+                    if (file) {
+                      setCoverImageFile(file);
+                      setCoverImageUrl(URL.createObjectURL(file));
+                    }
                   }}
                 />
               </label>
@@ -143,18 +216,25 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
           <div className="mt-4 grid gap-4">
             <div className="grid gap-4 sm:grid-cols-3">
               <Field label="캠페인 타입">
-                <Select value={experienceType} onChange={(e) => setExperienceType(e.target.value as ExperienceType)}>
+                <Select
+                  value={experienceType}
+                  onChange={(e) => {
+                    const next = e.target.value as ExperienceType;
+                    setExperienceType(next);
+                    setCategory(next === "product" ? "식품" : "카페");
+                  }}
+                >
                   <option value="product">제품 배송형</option>
                   <option value="local">지역 방문형</option>
                 </Select>
               </Field>
               <Field label="업종">
-                <Select defaultValue="푸드">
+                <Select value={industry} onChange={(e) => setIndustry(e.target.value as Industry)}>
                   {industryOptions.map((v) => <option key={v} value={v}>{v}</option>)}
                 </Select>
               </Field>
               <Field label="카테고리">
-                <Select defaultValue={experienceType === "product" ? "식품" : "카페"}>
+                <Select value={category} onChange={(e) => setCategory(e.target.value)}>
                   {(experienceType === "product" ? productCategoryOptions : localCategoryOptions).map((v) => (
                     <option key={v} value={v}>{v}</option>
                   ))}
@@ -168,7 +248,7 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
                   <Input value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="샘플팩 / 이용권 / 키트" />
                 </Field>
                 <Field label="제공 방식">
-                  <Input placeholder="제품 배송" />
+                  <Input name="offerValueLabel" placeholder="제품 배송" />
                 </Field>
                 <div className="sm:col-span-2">
                   <Field label="제공 구성">
@@ -178,12 +258,12 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="시/도"><Input placeholder="서울" /></Field>
-                <Field label="시군구"><Input placeholder="성동구" /></Field>
+                <Field label="시/도"><Input name="regionProvince" placeholder="서울" /></Field>
+                <Field label="시군구"><Input name="regionDistrict" placeholder="성동구" /></Field>
                 <Field label="장소명">
-                  <Input value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="브랜드 쇼룸" />
+                  <Input name="venueName" value={offerTitle} onChange={(e) => setOfferTitle(e.target.value)} placeholder="브랜드 쇼룸" />
                 </Field>
-                <Field label="방문 주소"><Input placeholder="도로명 주소" /></Field>
+                <Field label="방문 주소"><Input name="venueAddress" placeholder="도로명 주소" /></Field>
                 <div className="sm:col-span-2">
                   <Field label="운영/예약 안내">
                     <Textarea value={offerDescription} onChange={(e) => setOfferDescription(e.target.value)} placeholder="방문 가능 시간, 예약 방식, 주의사항" />
@@ -207,17 +287,30 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
           </div>
         </Card>
 
+        {/* 포맷 선택 */}
+        <Card>
+          <SectionTitle>포맷 선택</SectionTitle>
+          <p className="mt-1 text-sm text-spread-ink/55">참여자가 작성할 콘텐츠 포맷을 선택하세요.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {formats.map((format) => (
+              <Chip key={format} selected={selectedFormats.includes(format)} onClick={() => toggle(format, selectedFormats, setSelectedFormats)}>
+                {formatLabels[format]}
+              </Chip>
+            ))}
+          </div>
+        </Card>
+
         {/* 가이드라인 */}
         <Card>
           <SectionTitle>가이드라인</SectionTitle>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="핵심 메시지"><Input placeholder="반드시 남길 관점이나 문구" /></Field>
-            <Field label="필수 해시태그"><Input placeholder="#브랜드명, #캠페인태그" /></Field>
+            <Field label="핵심 메시지"><Input name="keyMessage" placeholder="반드시 남길 관점이나 문구" /></Field>
+            <Field label="필수 해시태그"><Input name="requiredHashtags" placeholder="#브랜드명, #캠페인태그" /></Field>
             <Field label="필수 포인트">
-              <Textarea placeholder="한 줄에 하나씩 입력&#10;예) 실제 사용 상황 포함&#10;예) 추천 대상 명시" />
+              <Textarea name="requiredPoints" placeholder="한 줄에 하나씩 입력&#10;예) 실제 사용 상황 포함&#10;예) 추천 대상 명시" />
             </Field>
             <Field label="금지 표현">
-              <Textarea placeholder="한 줄에 하나씩 입력&#10;예) 무조건 최고&#10;예) 100% 보장" />
+              <Textarea name="prohibitedExpressions" placeholder="한 줄에 하나씩 입력&#10;예) 무조건 최고&#10;예) 100% 보장" />
             </Field>
           </div>
         </Card>
@@ -226,10 +319,10 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
         <Card>
           <SectionTitle>모집 & 일정</SectionTitle>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="모집 인원"><Input type="number" placeholder="80" /></Field>
-            <Field label="개인정보 보유일 (일)"><Input type="number" placeholder="30" /></Field>
-            <Field label="신청 마감"><Input type="datetime-local" /></Field>
-            <Field label="제출 마감"><Input type="datetime-local" /></Field>
+            <Field label="모집 인원"><Input name="recruitLimit" type="number" placeholder="80" /></Field>
+            <Field label="개인정보 보유일 (일)"><Input name="privacyRetentionDays" type="number" placeholder="180" /></Field>
+            <Field label="신청 마감"><Input name="applyEndAt" type="datetime-local" /></Field>
+            <Field label="제출 마감"><Input name="submissionDueAt" type="datetime-local" /></Field>
           </div>
         </Card>
 
@@ -238,24 +331,29 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
           <SectionTitle>검수 정책</SectionTitle>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <Field label="검수 모드">
-              <Select defaultValue="semi_auto">
+              <Select name="reviewMode" defaultValue="semi_auto">
                 <option value="manual">운영자 검수</option>
                 <option value="semi_auto">반자동</option>
                 <option value="auto">자동</option>
               </Select>
             </Field>
-            <Field label="콘텐츠 유지기간 (개월)"><Input type="number" placeholder="6" /></Field>
-            <Field label="최소 글자 수"><Input type="number" placeholder="80" /></Field>
+            <Field label="콘텐츠 유지기간 (개월)"><Input name="contentRetentionMonths" type="number" placeholder="6" /></Field>
+            <Field label="최소 글자 수"><Input name="minTextLength" type="number" placeholder="80" /></Field>
           </div>
         </Card>
 
-        <Button onClick={() => setSaved(true)}>저장</Button>
-        {saved && (
+        <Button type="submit" disabled={isPending}>{isPending ? "저장 중..." : "저장"}</Button>
+        {saveMessage && (
           <p className="rounded-2xl border border-spread-point bg-spread-point/10 p-3 text-center text-sm font-semibold text-spread-point">
-            저장되었습니다.
+            {saveMessage}
           </p>
         )}
-      </div>
+        {saveError && (
+          <p className="rounded-2xl border border-spread-ink/20 bg-spread-ink/5 p-3 text-center text-sm font-semibold text-spread-ink">
+            {saveError}
+          </p>
+        )}
+      </form>
 
       {/* ── 사이드바 요약 ── */}
       <div className="hidden lg:block">
@@ -279,6 +377,14 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
                 : <span className="text-xs text-spread-ink/40">채널을 선택하세요</span>}
             </div>
           </Card>
+          <Card>
+            <p className="text-xs font-black uppercase tracking-wider text-spread-ink/50">선택 포맷</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedFormats.length > 0
+                ? selectedFormats.map((format) => <Badge key={format}>{formatLabels[format]}</Badge>)
+                : <span className="text-xs text-spread-ink/40">포맷을 선택하세요</span>}
+            </div>
+          </Card>
         </div>
       </div>
     </div>
@@ -291,4 +397,20 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function toggle<T>(value: T, list: T[], setter: (value: T[]) => void) {
   setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
+}
+
+function readString(formData: FormData, key: string, fallback = "") {
+  return String(formData.get(key) ?? fallback).trim();
+}
+
+function readNumber(formData: FormData, key: string) {
+  const value = Number(formData.get(key));
+  return Number.isFinite(value) ? value : 0;
+}
+
+function splitList(value: string) {
+  return value
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
