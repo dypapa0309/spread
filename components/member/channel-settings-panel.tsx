@@ -6,6 +6,7 @@ import { Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/field";
+import { uploadChannelVerificationImage } from "@/services/channel-assets";
 import type { ChannelType, UserChannel } from "@/types/spread";
 
 export function ChannelSettingsPanel({ channels = [] }: { channels?: UserChannel[] }) {
@@ -18,6 +19,7 @@ export function ChannelSettingsPanel({ channels = [] }: { channels?: UserChannel
   const [followerCount, setFollowerCount] = useState("");
   const [friendCount, setFriendCount] = useState("");
   const [verificationScreenshotUrl, setVerificationScreenshotUrl] = useState("");
+  const [verificationScreenshotFile, setVerificationScreenshotFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -29,6 +31,7 @@ export function ChannelSettingsPanel({ channels = [] }: { channels?: UserChannel
     setFollowerCount(next?.followerCount ? String(next.followerCount) : "");
     setFriendCount(next?.friendCount ? String(next.friendCount) : "");
     setVerificationScreenshotUrl(next?.verificationScreenshotUrl ?? "");
+    setVerificationScreenshotFile(null);
     setMessage("");
   }
 
@@ -36,6 +39,11 @@ export function ChannelSettingsPanel({ channels = [] }: { channels?: UserChannel
     setSaving(true);
     setMessage("");
     try {
+      let nextVerificationScreenshotUrl = verificationScreenshotUrl;
+      if (verificationScreenshotFile) {
+        nextVerificationScreenshotUrl = await uploadChannelVerificationImage(verificationScreenshotFile, `user-channel/${channelType}`);
+      }
+
       const response = await fetch("/api/user-channels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,12 +53,14 @@ export function ChannelSettingsPanel({ channels = [] }: { channels?: UserChannel
           channelUrl,
           followerCount: Number(followerCount) || 0,
           friendCount: Number(friendCount) || 0,
-          verificationScreenshotUrl
+          verificationScreenshotUrl: nextVerificationScreenshotUrl
         })
       });
       const result = (await response.json()) as { ok?: boolean; message?: string };
       setMessage(result.message ?? (result.ok ? "저장되었습니다." : "저장에 실패했습니다."));
       if (response.ok && result.ok) {
+        setVerificationScreenshotUrl(nextVerificationScreenshotUrl);
+        setVerificationScreenshotFile(null);
         router.refresh();
       }
     } catch {
@@ -98,7 +108,7 @@ export function ChannelSettingsPanel({ channels = [] }: { channels?: UserChannel
                 </Field>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="채널 링크">
+                <Field label={channelType === "kakao" ? "채널 링크" : "채널 링크"}>
                   <Input value={channelUrl} onChange={(event) => setChannelUrl(event.target.value)} placeholder="KakaoTalk은 비워둘 수 있습니다." disabled={channelType === "kakao"} />
                 </Field>
                 <Field label={channelType === "kakao" ? "친구수" : "팔로워수"}>
@@ -110,8 +120,21 @@ export function ChannelSettingsPanel({ channels = [] }: { channels?: UserChannel
                   />
                 </Field>
               </div>
-              <Field label="인증 캡처 URL" hint="KakaoTalk은 내 아이디/닉네임과 친구수가 보이는 캡처가 필수입니다.">
-                <Input value={verificationScreenshotUrl} onChange={(event) => setVerificationScreenshotUrl(event.target.value)} placeholder="/storage/channel-verifications/profile.png" />
+              <Field
+                label={channelType === "kakao" ? "카카오 프로필 캡처" : "인증 캡처"}
+                hint={channelType === "kakao" ? "내 아이디/닉네임과 친구수가 함께 보이는 캡처 이미지를 등록해 주세요." : "필요한 경우 채널 인증 캡처를 함께 보관할 수 있습니다."}
+              >
+                <div className="grid gap-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => setVerificationScreenshotFile(event.target.files?.[0] ?? null)}
+                    className="block w-full rounded-2xl border border-spread-ink/15 bg-spread-ink/[0.03] px-4 py-3 text-sm"
+                  />
+                  {verificationScreenshotUrl ? (
+                    <p className="text-xs text-spread-ink/55">등록된 캡처가 있습니다.</p>
+                  ) : null}
+                </div>
               </Field>
               {current ? (
                 <p className="rounded-2xl border border-spread-ink/10 px-4 py-3 text-xs text-spread-ink/60">

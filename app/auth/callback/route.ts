@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
     channel_url?: string;
     follower_count?: number;
     friend_count?: number;
+    verification_screenshot_url?: string;
     brand_name?: string;
     contact_name?: string;
   };
@@ -91,6 +92,7 @@ export async function GET(request: NextRequest) {
         handle: meta.channel_handle,
         follower_count: meta.follower_count ?? 0,
         friend_count: meta.friend_count ?? null,
+        verification_screenshot_url: meta.verification_screenshot_url ?? null,
         verification_status: "pending",
         is_verified: false,
         is_active: true

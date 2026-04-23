@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { uploadChannelVerificationImage } from "@/services/channel-assets";
 import { hasSupabaseEnv } from "@/supabase/env";
 
 const isMock = !hasSupabaseEnv();
@@ -214,6 +215,7 @@ function MemberSignupForm() {
   const [channelUrl, setChannelUrl] = useState("");
   const [followerCount, setFollowerCount] = useState("");
   const [friendCount, setFriendCount] = useState("");
+  const [verificationScreenshotFile, setVerificationScreenshotFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -240,11 +242,33 @@ function MemberSignupForm() {
       const { createClient } = await import("@/supabase/client");
       const supabase = createClient();
       const isKakao = channelType === "kakao";
+      let verificationScreenshotUrl: string | null = null;
+
+      if (isKakao) {
+        if (!verificationScreenshotFile) {
+          setError("카카오 채널은 프로필 캡처 이미지를 등록해야 합니다.");
+          setLoading(false);
+          return;
+        }
+        verificationScreenshotUrl = await uploadChannelVerificationImage(verificationScreenshotFile, "signup/kakao");
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email, password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: { name, nickname, role: "member", channel_type: channelType, channel_handle: channelHandle, channel_name: channelHandle, channel_url: channelUrl || null, follower_count: isKakao ? 0 : Number(followerCount) || 0, friend_count: isKakao ? Number(friendCount) || 0 : null }
+          data: {
+            name,
+            nickname,
+            role: "member",
+            channel_type: channelType,
+            channel_handle: channelHandle,
+            channel_name: channelHandle,
+            channel_url: channelUrl || null,
+            follower_count: isKakao ? 0 : Number(followerCount) || 0,
+            friend_count: isKakao ? Number(friendCount) || 0 : null,
+            verification_screenshot_url: verificationScreenshotUrl
+          }
         }
       });
       if (signUpError) {
@@ -256,7 +280,19 @@ function MemberSignupForm() {
       if (data.session) {
         await supabase.from("users").upsert({ id: data.user!.id, role: "member", name, nickname, email, bio: "", level: 1, score: 0, completed_missions: 0, status: "active" });
         if (channelHandle) {
-          await supabase.from("user_channels").insert({ user_id: data.user!.id, channel_type: channelType, channel_name: channelHandle, channel_url: channelUrl || null, handle: channelHandle, follower_count: isKakao ? 0 : Number(followerCount) || 0, friend_count: isKakao ? Number(friendCount) || 0 : null, verification_status: "pending", is_verified: false, is_active: true });
+          await supabase.from("user_channels").insert({
+            user_id: data.user!.id,
+            channel_type: channelType,
+            channel_name: channelHandle,
+            channel_url: channelUrl || null,
+            handle: channelHandle,
+            follower_count: isKakao ? 0 : Number(followerCount) || 0,
+            friend_count: isKakao ? Number(friendCount) || 0 : null,
+            verification_screenshot_url: verificationScreenshotUrl,
+            verification_status: "pending",
+            is_verified: false,
+            is_active: true
+          });
         }
         router.replace("/member"); router.refresh();
       } else { setDone(true); }
@@ -295,6 +331,16 @@ function MemberSignupForm() {
               ? <Input type="number" value={friendCount} onChange={(e) => setFriendCount(e.target.value)} placeholder="1000" />
               : <Input type="number" value={followerCount} onChange={(e) => setFollowerCount(e.target.value)} placeholder="3000" />}
           </Field>
+          {isKakao ? (
+            <Field label="카카오 프로필 캡처" hint="내 닉네임/아이디와 친구수가 함께 보이는 캡처 이미지를 등록합니다.">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setVerificationScreenshotFile(e.target.files?.[0] ?? null)}
+                className="block w-full rounded-2xl border border-spread-ink/15 bg-spread-ink/[0.03] px-4 py-3 text-sm"
+              />
+            </Field>
+          ) : null}
           <Button type="submit" form="member-signup" disabled={loading || cooldown.active}>
             {loading ? "가입 중..." : cooldown.active ? `잠시 후 다시 시도해 주세요 (${cooldown.remaining}초)` : "가입하기"}
           </Button>
