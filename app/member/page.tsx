@@ -4,26 +4,32 @@ import { MemberStatsModal } from "@/components/member/member-stats-modal";
 import { Badge } from "@/components/ui/badge";
 import { Card, Section } from "@/components/ui/card";
 import { channelLabels, channelRoles, formatLabels } from "@/lib/labels";
-import { currentMember } from "@/lib/mock-data";
-import { listCampaigns } from "@/services/spread-service";
+import { getServerUser, listCampaigns } from "@/services/spread-service";
 import type { ChannelType, FormatType } from "@/types/spread";
 
 const channels: ChannelType[] = ["threads", "x", "wordpress", "kakao"];
 const formats: FormatType[] = ["one_line", "story", "comparison", "question", "recommendation", "debate"];
 
 export default async function MemberHomePage() {
-  const campaigns = await listCampaigns({ status: "open" });
+  const [campaigns, user] = await Promise.all([
+    listCampaigns({ status: "open" }),
+    getServerUser()
+  ]);
+
+  const nickname = user?.nickname ?? "멤버";
 
   return (
     <AppShell role="member">
       <Section className="grid gap-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="mb-3">
-              <MemberStatsModal user={currentMember} />
-            </div>
+            {user && (
+              <div className="mb-3">
+                <MemberStatsModal user={user} />
+              </div>
+            )}
             <p className="text-sm font-bold text-spread-point">오늘 가능한 미션</p>
-            <h1 className="mt-2 text-4xl font-black">안녕하세요, {currentMember.nickname}님</h1>
+            <h1 className="mt-2 text-4xl font-black">안녕하세요, {nickname}님</h1>
           </div>
         </div>
         <div className="grid gap-5 lg:grid-cols-[1.4fr_0.8fr]">

@@ -1,37 +1,46 @@
-import {
-  brands,
-  campaignApplications,
-  currentAdmin,
-  currentMember,
-  campaigns,
-  fulfillmentInfos,
-  getCampaignViews,
-  getSubmissionViews,
-  userPenalties,
-  users,
-  userChannels
-} from "@/lib/mock-data";
+import * as mock from "@/lib/mock-data";
+import * as real from "@/services/supabase-service";
 import type {
   ApplicationStatus,
-  CampaignDraftPreset,
   CampaignApplicationView,
+  CampaignDraftPreset,
   CampaignStatus,
+  CampaignView,
   ChannelType,
   FulfillmentInfo,
   SubmissionChecklistItem,
+  SubmissionEligibility,
   SubmissionStatus,
+  SubmissionView,
+  User,
   UserPenalty
 } from "@/types/spread";
 
-export const appMode = process.env.NEXT_PUBLIC_APP_MODE ?? "mock";
+// Supabase 환경 변수가 있으면 real 모드, 없으면 mock 모드
+const isLive = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+
+// ────────────────────────────────────────────────────────────────────────────
+// Current user
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function getServerUser(): Promise<User | null> {
+  if (isLive) return real.getServerUser();
+  return mock.currentMember;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Campaigns
+// ────────────────────────────────────────────────────────────────────────────
 
 export async function listCampaigns(filters?: {
   query?: string;
   status?: CampaignStatus | "all";
   channel?: string;
   format?: string;
-}) {
-  const campaigns = getCampaignViews();
+}): Promise<CampaignView[]> {
+  if (isLive) return real.listCampaigns(filters);
+
+  const campaigns = mock.getCampaignViews();
   return campaigns.filter((campaign) => {
     const queryMatch = filters?.query
       ? `${campaign.title} ${campaign.brand.name} ${campaign.summary}`.toLowerCase().includes(filters.query.toLowerCase())
@@ -43,60 +52,103 @@ export async function listCampaigns(filters?: {
   });
 }
 
-export async function getCampaign(id: string) {
-  return getCampaignViews().find((campaign) => campaign.id === id || campaign.slug === id) ?? null;
+export async function getCampaign(id: string): Promise<CampaignView | null> {
+  if (isLive) return real.getCampaign(id);
+  return mock.getCampaignViews().find((c) => c.id === id || c.slug === id) ?? null;
 }
 
-export async function listMemberSubmissions(userId = currentMember.id) {
-  return getSubmissionViews().filter((submission) => submission.userId === userId);
+// ────────────────────────────────────────────────────────────────────────────
+// Member
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function listMemberSubmissions(userId = mock.currentMember.id): Promise<SubmissionView[]> {
+  if (isLive) return real.listMemberSubmissions(userId);
+  return mock.getSubmissionViews().filter((s) => s.userId === userId);
 }
 
-export function getActivePenalty(userId = currentMember.id, at = new Date("2026-04-23T02:00:00.000Z")): UserPenalty | undefined {
-  return userPenalties.find((penalty) => {
-    const startsAt = new Date(penalty.startsAt);
-    const endsAt = new Date(penalty.endsAt);
-    return penalty.userId === userId && startsAt <= at && endsAt > at;
+export async function listMemberApplications(userId = mock.currentMember.id) {
+  if (isLive) return real.listMemberApplications(userId);
+  return mock.campaignApplications.filter((a) => a.userId === userId);
+}
+
+export async function getActivePenalty(userId = mock.currentMember.id): Promise<UserPenalty | undefined> {
+  if (isLive) return real.getActivePenalty(userId);
+  const at = new Date();
+  return mock.userPenalties.find((p) => {
+    return p.userId === userId && new Date(p.startsAt) <= at && new Date(p.endsAt) > at;
   });
 }
 
-export async function listMemberApplications(userId = currentMember.id) {
-  return campaignApplications.filter((application) => application.userId === userId);
+export async function getMemberProfile(userId = mock.currentMember.id) {
+  if (isLive) return real.getMemberProfile(userId);
+
+  const submissions = mock.getSubmissionViews().filter((s) => s.userId === userId);
+  const applications = mock.campaignApplications.filter((a) => a.userId === userId);
+  const at = new Date();
+  const activePenalty = mock.userPenalties.find((p) => {
+    return p.userId === userId && new Date(p.startsAt) <= at && new Date(p.endsAt) > at;
+  });
+  const approved = submissions.filter((s) =>
+    ["auto_approved", "approved", "fulfillment_pending", "completed"].includes(s.status)
+  ).length;
+
+  return {
+    user: mock.users.find((u) => u.id === userId) ?? mock.currentMember,
+    channels: mock.userChannels.filter((c) => c.userId === userId),
+    applications,
+    activePenalty,
+    stats: {
+      totalSubmissions: submissions.length,
+      totalApplications: applications.length,
+      approvalRate: submissions.length ? Math.round((approved / submissions.length) * 100) : 0,
+      preferredChannel: "Threads",
+      strongestFormat: "질문/한줄 반응"
+    }
+  };
 }
 
-export async function listCampaignApplications(campaignId: string): Promise<CampaignApplicationView[]> {
-  return campaignApplications
-    .filter((application) => application.campaignId === campaignId)
-    .map((application) => {
-      const campaign = campaigns.find((item) => item.id === application.campaignId)!;
-      const user = users.find((item) => item.id === application.userId)!;
-      const userSubmissions = getSubmissionViews().filter((submission) => submission.userId === user.id);
-      const approved = userSubmissions.filter((submission) =>
-        ["auto_approved", "approved", "fulfillment_pending", "completed"].includes(submission.status)
-      ).length;
+export async function checkSubmissionEligibility(
+  campaignId: string,
+  userId = mock.currentMember.id
+): Promise<SubmissionEligibility> {
+  if (isLive) return real.checkSubmissionEligibility(campaignId, userId);
 
-      return {
-        ...application,
-        campaign,
-        brand: brands.find((brand) => brand.id === campaign.brandId)!,
-        user,
-        channel: userChannels.find(
-          (channel) => channel.userId === user.id && channel.channelType === application.channelType
-        ),
-        approvalRate: userSubmissions.length ? Math.round((approved / userSubmissions.length) * 100) : 0,
-        activePenalty: getActivePenalty(user.id),
-        fulfillment: fulfillmentInfos.find((info) => info.applicationId === application.id)
-      };
-    });
+  const activePenalty = await getActivePenalty(userId);
+  if (activePenalty) {
+    return {
+      canSubmit: false,
+      reason: "penalty",
+      message: `패널티로 ${new Date(activePenalty.endsAt).toLocaleDateString("ko-KR")}까지 사용이 제한됩니다.`,
+      penalty: activePenalty
+    };
+  }
+
+  const application = mock.campaignApplications.find(
+    (a) => a.campaignId === campaignId && a.userId === userId
+  );
+  if (!application) return { canSubmit: false, reason: "not_applied", message: "먼저 캠페인에 신청해야 합니다." };
+  if (application.status === "applied") return { canSubmit: false, reason: "pending", message: "관리자 선정 후 제출할 수 있습니다." };
+  if (application.status === "rejected") return { canSubmit: false, reason: "rejected", message: "선정되지 않았습니다." };
+  if (application.status === "cancelled") return { canSubmit: false, reason: "not_applied", message: "취소된 신청입니다." };
+
+  return { canSubmit: true, reason: "selected", message: "선정된 캠페인입니다." };
 }
 
-export async function listBrandCampaigns(brandId = "brand-1") {
-  return getCampaignViews().filter((campaign) => campaign.brandId === brandId);
+// ────────────────────────────────────────────────────────────────────────────
+// Brand
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function listBrandCampaigns(brandId = "brand-1"): Promise<CampaignView[]> {
+  if (isLive) return real.listBrandCampaigns(brandId);
+  return mock.getCampaignViews().filter((c) => c.brandId === brandId);
 }
 
 export async function getBrandCampaignLimitState(brandId = "brand-1") {
-  const brandCampaigns = await listBrandCampaigns(brandId);
+  if (isLive) return real.getBrandCampaignLimitState(brandId);
+
+  const campaigns = await listBrandCampaigns(brandId);
   const activeStatuses: CampaignStatus[] = ["draft", "open", "paused"];
-  const activeCount = brandCampaigns.filter((campaign) => activeStatuses.includes(campaign.status)).length;
+  const activeCount = campaigns.filter((c) => activeStatuses.includes(c.status)).length;
 
   return {
     activeCount,
@@ -110,180 +162,129 @@ export async function getBrandCampaignLimitState(brandId = "brand-1") {
 }
 
 export async function getCampaignDraftPresets(brandId = "brand-1"): Promise<CampaignDraftPreset[]> {
-  const brandCampaigns = await listBrandCampaigns(brandId);
+  if (isLive) return real.getCampaignDraftPresets(brandId);
 
-  return brandCampaigns.map((campaign) => ({
-    sourceCampaignId: campaign.id,
-    title: campaign.title,
-    experienceType: campaign.experienceType,
-    industry: campaign.industry,
-    category: campaign.category,
-    offerTitle: campaign.offerTitle,
-    offerDescription: campaign.offerDescription,
-    offerValueLabel: campaign.offerValueLabel,
-    channels: campaign.channels,
-    formats: campaign.formats,
-    keyMessage: campaign.guideline.keyMessage
+  const campaigns = await listBrandCampaigns(brandId);
+  return campaigns.map((c) => ({
+    sourceCampaignId: c.id,
+    title: c.title,
+    experienceType: c.experienceType,
+    industry: c.industry,
+    category: c.category,
+    offerTitle: c.offerTitle,
+    offerDescription: c.offerDescription,
+    offerValueLabel: c.offerValueLabel,
+    channels: c.channels,
+    formats: c.formats,
+    keyMessage: c.guideline.keyMessage
   }));
 }
 
 export async function cloneCampaignDraft(sourceCampaignId: string): Promise<CampaignDraftPreset | null> {
   const presets = await getCampaignDraftPresets();
-  return presets.find((preset) => preset.sourceCampaignId === sourceCampaignId) ?? null;
+  return presets.find((p) => p.sourceCampaignId === sourceCampaignId) ?? null;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Admin
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function listCampaignApplications(campaignId: string): Promise<CampaignApplicationView[]> {
+  if (isLive) return real.listCampaignApplications(campaignId);
+  return mock.campaignApplications
+    .filter((a) => a.campaignId === campaignId)
+    .map((application) => {
+      const campaign = mock.campaigns.find((c) => c.id === application.campaignId)!;
+      const user = mock.users.find((u) => u.id === application.userId)!;
+      const userSubmissions = mock.getSubmissionViews().filter((s) => s.userId === user.id);
+      const approved = userSubmissions.filter((s) =>
+        ["auto_approved", "approved", "fulfillment_pending", "completed"].includes(s.status)
+      ).length;
+      const at = new Date();
+      const activePenalty = mock.userPenalties.find((p) => {
+        return p.userId === user.id && new Date(p.startsAt) <= at && new Date(p.endsAt) > at;
+      });
+
+      return {
+        ...application,
+        campaign,
+        brand: mock.brands.find((b) => b.id === campaign.brandId)!,
+        user,
+        channel: mock.userChannels.find(
+          (c) => c.userId === user.id && c.channelType === application.channelType
+        ),
+        approvalRate: userSubmissions.length ? Math.round((approved / userSubmissions.length) * 100) : 0,
+        activePenalty,
+        fulfillment: mock.fulfillmentInfos.find((f) => f.applicationId === application.id)
+      };
+    });
 }
 
 export async function listBrandCampaignApplications(campaignId: string, brandId = "brand-1") {
-  const campaign = campaigns.find((item) => item.id === campaignId && item.brandId === brandId);
+  if (isLive) return real.listBrandCampaignApplications(campaignId, brandId);
+  const campaign = mock.campaigns.find((c) => c.id === campaignId && c.brandId === brandId);
   if (!campaign) return [];
   return listCampaignApplications(campaignId);
 }
 
 export function getFulfillmentForApplication(applicationId: string): FulfillmentInfo | undefined {
-  return fulfillmentInfos.find((info) => info.applicationId === applicationId);
+  if (isLive) return undefined;
+  return mock.fulfillmentInfos.find((f) => f.applicationId === applicationId);
 }
 
 export async function getCampaignApplicationSummary(campaignId: string) {
   const applications = await listCampaignApplications(campaignId);
   return {
     applications,
-    applied: applications.filter((item) => item.status === "applied").length,
-    selected: applications.filter((item) => item.status === "selected").length,
-    rejected: applications.filter((item) => item.status === "rejected").length
+    applied: applications.filter((a) => a.status === "applied").length,
+    selected: applications.filter((a) => a.status === "selected").length,
+    rejected: applications.filter((a) => a.status === "rejected").length
   };
 }
 
-export async function listAdminSubmissions(status?: SubmissionStatus | "all") {
-  const views = getSubmissionViews();
-  return !status || status === "all" ? views : views.filter((submission) => submission.status === status);
-}
-
-export async function getMemberProfile() {
-  const submissions = await listMemberSubmissions(currentMember.id);
-  const applications = await listMemberApplications(currentMember.id);
-  const approved = submissions.filter((submission) =>
-    ["auto_approved", "approved", "fulfillment_pending", "completed"].includes(submission.status)
-  ).length;
-
-  return {
-    user: currentMember,
-    channels: userChannels.filter((channel) => channel.userId === currentMember.id),
-    applications,
-    activePenalty: getActivePenalty(currentMember.id),
-    stats: {
-      totalSubmissions: submissions.length,
-      totalApplications: applications.length,
-      approvalRate: submissions.length ? Math.round((approved / submissions.length) * 100) : 0,
-      preferredChannel: "Threads",
-      strongestFormat: "질문/한줄 반응"
-    }
-  };
+export async function listAdminSubmissions(status?: SubmissionStatus | "all"): Promise<SubmissionView[]> {
+  if (isLive) return real.listAdminSubmissions(status);
+  const views = mock.getSubmissionViews();
+  return !status || status === "all" ? views : views.filter((s) => s.status === status);
 }
 
 export async function getAdminSummary() {
-  const campaigns = getCampaignViews();
-  const submissions = getSubmissionViews();
-  const todaySubmissions = submissions.filter((submission) => submission.submittedAt.startsWith("2026-04-22")).length;
-  const approved = submissions.filter((submission) =>
-    ["auto_approved", "approved", "fulfillment_pending", "completed"].includes(submission.status)
+  if (isLive) return real.getAdminSummary();
+
+  const campaigns = mock.getCampaignViews();
+  const submissions = mock.getSubmissionViews();
+  const today = new Date().toISOString().slice(0, 10);
+  const todaySubmissions = submissions.filter((s) => s.submittedAt.startsWith(today)).length;
+  const approved = submissions.filter((s) =>
+    ["auto_approved", "approved", "fulfillment_pending", "completed"].includes(s.status)
   ).length;
 
   return {
-    admin: currentAdmin,
-    activeCampaigns: campaigns.filter((campaign) => campaign.status === "open").length,
+    admin: mock.currentAdmin,
+    activeCampaigns: campaigns.filter((c) => c.status === "open").length,
     todaySubmissions,
     approvalRate: Math.round((approved / submissions.length) * 100),
-    autoApproved: submissions.filter((submission) => submission.status === "auto_approved").length,
-    needsReview: submissions.filter((submission) => submission.status === "needs_review").length,
-    applicationPending: campaignApplications.filter((application) => application.status === "applied").length,
+    autoApproved: submissions.filter((s) => s.status === "auto_approved").length,
+    needsReview: submissions.filter((s) => s.status === "needs_review").length,
+    applicationPending: mock.campaignApplications.filter((a) => a.status === "applied").length,
     recentSubmissions: submissions.slice(0, 6),
     recentCampaigns: campaigns.slice(0, 5)
   };
 }
 
-export function getApplicationCta(status?: ApplicationStatus, hasPenalty = Boolean(getActivePenalty())) {
-  if (hasPenalty) {
-    return { label: "사용 제한 중", href: "/member/profile", disabled: true };
-  }
+// ────────────────────────────────────────────────────────────────────────────
+// Shared helpers (mode 무관)
+// ────────────────────────────────────────────────────────────────────────────
 
-  if (!status) {
-    return { label: "신청하기", href: "", disabled: false };
-  }
-
-  if (status === "selected") {
-    return { label: "제출하기", href: "", disabled: false };
-  }
-
-  if (status === "applied") {
-    return { label: "신청 검토 중", href: "/member/profile", disabled: true };
-  }
-
-  if (status === "rejected") {
-    return { label: "선정되지 않음", href: "/member/profile", disabled: true };
-  }
-
+export function getApplicationCta(status?: ApplicationStatus, hasPenalty = false) {
+  if (hasPenalty) return { label: "사용 제한 중", href: "/member/profile", disabled: true };
+  if (!status) return { label: "신청하기", href: "", disabled: false };
+  if (status === "selected") return { label: "제출하기", href: "", disabled: false };
+  if (status === "applied") return { label: "신청 검토 중", href: "/member/profile", disabled: true };
+  if (status === "rejected") return { label: "선정되지 않음", href: "/member/profile", disabled: true };
   return { label: "신청 취소됨", href: "/member/profile", disabled: true };
 }
 
 export function getSubmissionChecklist(channelType: ChannelType): SubmissionChecklistItem[] {
-  const common: SubmissionChecklistItem[] = [
-    {
-      id: "body",
-      label: "본문을 붙여넣었습니다",
-      required: true,
-      channelTypes: ["threads", "x", "wordpress", "kakao"],
-      checked: false
-    },
-    {
-      id: "retention",
-      label: "게시물 6개월 유지 조건을 확인했습니다",
-      required: true,
-      channelTypes: ["threads", "x", "wordpress", "kakao"],
-      checked: false
-    }
-  ];
-
-  if (channelType === "kakao") {
-    return [
-      {
-        id: "screenshot",
-        label: "KakaoTalk 피드 캡처를 준비했습니다",
-        required: true,
-        channelTypes: ["kakao"],
-        checked: false
-      },
-      {
-        id: "kakao-profile",
-        label: "닉네임/친구수 인증 정보와 같은 계정입니다",
-        required: true,
-        channelTypes: ["kakao"],
-        checked: false
-      },
-      ...common
-    ];
-  }
-
-  return [
-    {
-      id: "url",
-      label: "게시글 링크를 입력했습니다",
-      required: true,
-      channelTypes: ["threads", "x", "wordpress"],
-      checked: false
-    },
-    {
-      id: "public",
-      label: "공개 게시물 상태를 확인했습니다",
-      required: true,
-      channelTypes: ["threads", "x", "wordpress"],
-      checked: false
-    },
-    {
-      id: "required-tags",
-      label: "필수 해시태그/링크를 확인했습니다",
-      required: true,
-      channelTypes: ["threads", "x", "wordpress"],
-      checked: false
-    },
-    ...common
-  ];
+  return real.getSubmissionChecklist(channelType);
 }

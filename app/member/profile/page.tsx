@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { ChannelSettingsPanel } from "@/components/member/channel-settings-panel";
 import { MetricCard } from "@/components/metric-card";
@@ -5,10 +6,16 @@ import { SubmissionList } from "@/components/submission-list";
 import { Badge } from "@/components/ui/badge";
 import { Card, Section } from "@/components/ui/card";
 import { channelLabels, shortDate, verificationStatusLabels } from "@/lib/labels";
-import { getMemberProfile, listMemberSubmissions } from "@/services/spread-service";
+import { getMemberProfile, getServerUser, listMemberSubmissions } from "@/services/spread-service";
 
 export default async function ProfilePage() {
-  const { user, channels, stats, activePenalty } = await getMemberProfile();
+  const currentUser = await getServerUser();
+  if (!currentUser) redirect("/login");
+
+  const profile = await getMemberProfile(currentUser.id);
+  if (!profile) redirect("/login");
+
+  const { user, channels, stats, activePenalty } = profile;
   const submissions = await listMemberSubmissions(user.id);
 
   return (
@@ -40,7 +47,7 @@ export default async function ProfilePage() {
           <Card>
             <h2 className="text-xl font-black">연결 채널</h2>
             <div className="mt-4 grid gap-3">
-              {channels.map((channel) => (
+              {channels.length > 0 ? channels.map((channel) => (
                 <div key={channel.id} className="flex items-center justify-between rounded-2xl border border-spread-ink/10 p-3">
                   <div>
                     <p className="font-black">{channelLabels[channel.channelType]}</p>
@@ -50,7 +57,9 @@ export default async function ProfilePage() {
                   </div>
                   <Badge active={channel.isVerified}>{verificationStatusLabels[channel.verificationStatus]}</Badge>
                 </div>
-              ))}
+              )) : (
+                <p className="text-sm text-spread-ink/50">등록된 채널이 없습니다. 채널을 추가하면 캠페인에 신청할 수 있습니다.</p>
+              )}
             </div>
           </Card>
           <Card>

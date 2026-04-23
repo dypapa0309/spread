@@ -1,15 +1,17 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { SubmissionForm } from "@/components/member/submission-form";
 import { Section } from "@/components/ui/card";
-import { getCampaign } from "@/services/spread-service";
-import { checkSubmissionEligibility } from "@/services/submission-auto-check";
+import { checkSubmissionEligibility, getCampaign, getServerUser } from "@/services/spread-service";
 
 export default async function SubmitPage({ params }: { params: Promise<{ campaignId: string }> }) {
   const { campaignId } = await params;
-  const campaign = await getCampaign(campaignId);
+  const [campaign, user] = await Promise.all([getCampaign(campaignId), getServerUser()]);
+
   if (!campaign) notFound();
-  const eligibility = checkSubmissionEligibility(campaign.id);
+  if (!user) redirect("/login");
+
+  const eligibility = await checkSubmissionEligibility(campaignId, user.id);
 
   return (
     <AppShell role="member">

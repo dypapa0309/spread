@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LinkButton } from "@/components/ui/button";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 const memberNav = [
   ["홈", "/member"],
@@ -42,6 +43,7 @@ export function AppShell({ children, role = "member" }: { children: ReactNode; r
           <div className="flex items-center gap-2">
             {role === "admin" ? <LinkButton href="/member" variant="outline">멤버 보기</LinkButton> : null}
             {role === "brand" ? <LinkButton href="/member" variant="outline">사용자 보기</LinkButton> : null}
+            {role !== "public" ? <LogoutButton /> : null}
           </div>
         </div>
         {role !== "public" ? (
@@ -63,18 +65,17 @@ export function AppShell({ children, role = "member" }: { children: ReactNode; r
               <p className="mt-2 leading-5">반응을 퍼뜨리고 전환을 만드는 미션 플랫폼</p>
             </div>
             <div className="grid gap-1 leading-5">
-              <p>상호명: 주식회사 스프레드</p>
-              <p>대표: 홍길동 · 사업자등록번호: 000-00-00000</p>
-              <p>통신판매업신고번호: 제0000-서울강남-0000호</p>
-              <p>주소: 서울특별시 강남구 테헤란로 000</p>
-              <p>개인정보보호책임자: privacy@spread.local</p>
+              <p>상호명: 이상한회사</p>
+              <p>대표: 이상빈 · 사업자등록번호: 876-28-01550</p>
+              <p>주소: 상동로 87 가나베스트타운 803-102호</p>
+              <p>개인정보보호책임자: dypapa0309@gmail.com</p>
             </div>
             <div className="grid content-start gap-2 md:text-right">
               <Link href="/login" className="font-semibold text-spread-ink">사용자/광고주 로그인</Link>
-              <a href="mailto:hello@spread.local">hello@spread.local</a>
+              <a href="mailto:dypapa0309@gmail.com">dypapa0309@gmail.com</a>
               <div className="flex flex-wrap gap-3 md:justify-end">
-                <a href="#">이용약관</a>
-                <a href="#">개인정보처리방침</a>
+                <Link href="/terms">이용약관</Link>
+                <Link href="/privacy">개인정보처리방침</Link>
               </div>
             </div>
           </div>
