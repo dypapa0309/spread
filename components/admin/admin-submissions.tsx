@@ -5,7 +5,7 @@ import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, Textarea } from "@/components/ui/field";
-import { channelLabels, formatLabels, submissionStatusLabels } from "@/lib/labels";
+import { channelLabels, submissionStatusLabels } from "@/lib/labels";
 import type { SubmissionStatus, SubmissionView } from "@/types/spread";
 
 const actions: { label: string; status: SubmissionStatus }[] = [
@@ -73,7 +73,6 @@ export function AdminSubmissions({ initialSubmissions }: { initialSubmissions: S
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge>{channelLabels[submission.channelType]}</Badge>
-                <Badge>{formatLabels[submission.formatType]}</Badge>
                 <Badge>자동 {submission.autoCheckScore}</Badge>
               </div>
             </button>

@@ -4,15 +4,14 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, Input, Textarea } from "@/components/ui/field";
 import { PrivacyConsent } from "@/components/privacy-consent";
-import { channelLabels, experienceTypeLabels, formatLabels, shortDate, submissionStatusLabels } from "@/lib/labels";
+import { channelLabels, experienceTypeLabels, shortDate, submissionStatusLabels } from "@/lib/labels";
 import { calculateDeadlinePenalty, determineSubmissionStatus, runSubmissionAutoCheck } from "@/services/submission-auto-check";
 import { getSubmissionChecklist } from "@/lib/client-helpers";
-import type { CampaignView, ChannelType, FormatType, SubmissionEligibility, SubmissionStatus } from "@/types/spread";
+import type { CampaignView, ChannelType, SubmissionEligibility, SubmissionStatus } from "@/types/spread";
 
 export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignView; eligibility: SubmissionEligibility }) {
-  const [format, setFormat] = useState<FormatType>(campaign.formats[0]);
   const [channelInputs, setChannelInputs] = useState<Record<ChannelType, { postUrl: string; postText: string; screenshotUrl: string; postedAt: string }>>(
     Object.fromEntries(campaign.channels.map((channelType) => [channelType, { postUrl: "", postText: "", screenshotUrl: "", postedAt: "" }])) as Record<ChannelType, { postUrl: string; postText: string; screenshotUrl: string; postedAt: string }>
   );
@@ -92,7 +91,6 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   campaignId: campaign.id,
-                  formatType: format,
                   submissions: campaign.channels.map((channelType) => ({
                     channelType,
                     ...channelInputs[channelType]
@@ -166,13 +164,6 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
             )}
           </div>
           <PrivacyConsent checked={fulfillmentAgreed} onChange={setFulfillmentAgreed} variant="fulfillment" />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="포맷">
-              <Select value={format} onChange={(event) => setFormat(event.target.value as FormatType)}>
-                {campaign.formats.map((item) => <option key={item} value={item}>{formatLabels[item]}</option>)}
-              </Select>
-            </Field>
-          </div>
           {campaign.channels.map((channelType) => {
             const input = channelInputs[channelType] ?? { postUrl: "", postText: "", screenshotUrl: "", postedAt: "" };
             return (

@@ -1,6 +1,5 @@
 export type UserRole = "member" | "admin" | "brand";
 export type ChannelType = "threads" | "x" | "wordpress" | "kakao";
-export type FormatType = "one_line" | "story" | "comparison" | "question" | "recommendation" | "debate";
 export type CampaignStatus = "draft" | "open" | "closed" | "paused" | "completed";
 export type ReviewMode = "manual" | "semi_auto" | "auto";
 export type SubmissionStatus =
@@ -124,12 +123,6 @@ export type CampaignChannel = {
   channelType: ChannelType;
 };
 
-export type CampaignFormat = {
-  id: string;
-  campaignId: string;
-  formatType: FormatType;
-};
-
 export type CampaignGuideline = {
   id: string;
   campaignId: string;
@@ -198,7 +191,6 @@ export type Submission = {
   campaignId: string;
   userId: string;
   channelType: ChannelType;
-  formatType: FormatType;
   postUrl?: string;
   postText: string;
   screenshotUrl?: string;
@@ -263,7 +255,6 @@ export type AutoCheckResult = {
 export type CampaignView = Campaign & {
   brand: Brand;
   channels: ChannelType[];
-  formats: FormatType[];
   guideline: CampaignGuideline;
   submissionsCount: number;
   applicationsCount: number;
@@ -309,7 +300,6 @@ export type CampaignDraftPreset = {
   offerDescription: string;
   offerValueLabel: string;
   channels: ChannelType[];
-  formats: FormatType[];
   keyMessage: string;
 };
 

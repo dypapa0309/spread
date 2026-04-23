@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/supabase/admin";
 import { createClient } from "@/supabase/server";
-import type { BrandPlan, ChannelType, ExperienceType, FormatType, Industry, ReviewMode } from "@/types/spread";
+import type { BrandPlan, ChannelType, ExperienceType, Industry, ReviewMode } from "@/types/spread";
 
 const PLAN_LIMITS: Record<BrandPlan, { activeCampaignLimit: number; monthlySelectedLimit: number; label: string }> = {
   basic: { activeCampaignLimit: 2, monthlySelectedLimit: 20, label: "Basic" },
@@ -25,7 +25,6 @@ export type SaveCampaignInput = {
   venueAddress?: string;
   venueName?: string;
   channels: ChannelType[];
-  formats: FormatType[];
   keyMessage: string;
   requiredHashtags: string[];
   requiredPoints: string[];
@@ -124,8 +123,6 @@ async function persistCampaignRecord(input: SaveCampaignInput, campaignId?: stri
   }
 
   if (!input.channels.length) return { ok: false, message: "채널을 하나 이상 선택해 주세요." };
-  if (!input.formats.length) return { ok: false, message: "미션 포맷을 하나 이상 선택해 주세요." };
-
   const campaignPayload = {
     brand_id: brandId,
     title,
@@ -215,22 +212,15 @@ async function persistCampaignRecord(input: SaveCampaignInput, campaignId?: stri
 
   const savedCampaignId = campaign.id as string;
 
-  if (input.channels.length && input.formats.length) {
-    await Promise.all([
-      adminSupabase.from("campaign_channels").delete().eq("campaign_id", savedCampaignId),
-      adminSupabase.from("campaign_formats").delete().eq("campaign_id", savedCampaignId),
-      adminSupabase.from("campaign_guidelines").delete().eq("campaign_id", savedCampaignId)
-    ]);
-  }
+  await Promise.all([
+    adminSupabase.from("campaign_channels").delete().eq("campaign_id", savedCampaignId),
+    adminSupabase.from("campaign_guidelines").delete().eq("campaign_id", savedCampaignId)
+  ]);
 
-  const [{ error: channelsError }, { error: formatsError }, { error: guidelineError }] = await Promise.all([
+  const [{ error: channelsError }, { error: guidelineError }] = await Promise.all([
     adminSupabase.from("campaign_channels").insert(input.channels.map((channelType) => ({
       campaign_id: savedCampaignId,
       channel_type: channelType
-    }))),
-    adminSupabase.from("campaign_formats").insert(input.formats.map((formatType) => ({
-      campaign_id: savedCampaignId,
-      format_type: formatType
     }))),
     adminSupabase.from("campaign_guidelines").insert({
       campaign_id: savedCampaignId,
@@ -249,7 +239,7 @@ async function persistCampaignRecord(input: SaveCampaignInput, campaignId?: stri
     })
   ]);
 
-  const relationError = channelsError ?? formatsError ?? guidelineError;
+  const relationError = channelsError ?? guidelineError;
   if (relationError) {
     if (!campaignId) await adminSupabase.from("campaigns").delete().eq("id", savedCampaignId);
     return { ok: false, message: `캠페인 부가 정보 저장 실패: ${relationError.message}` };

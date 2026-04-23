@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/supabase/admin";
 import { createClient } from "@/supabase/server";
 import { normalizeSubmissionUrl, validateSubmissionUrl } from "@/services/submission-auto-check";
-import type { ChannelType, FormatType, SubmissionStatus } from "@/types/spread";
+import type { ChannelType, SubmissionStatus } from "@/types/spread";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,6 @@ type ChannelSubmissionPayload = {
 
 type SubmitPayload = {
   campaignId?: string;
-  formatType?: FormatType;
   submissions?: ChannelSubmissionPayload[];
 };
 
@@ -25,7 +24,6 @@ export async function POST(request: Request) {
     const payload = (await request.json()) as SubmitPayload;
     const campaignId = payload.campaignId?.trim();
     const submissions = payload.submissions ?? [];
-    const formatType = payload.formatType ?? "one_line";
 
     if (!campaignId) return NextResponse.json({ ok: false, message: "캠페인 정보가 없습니다." }, { status: 400 });
     if (!submissions.length) return NextResponse.json({ ok: false, message: "제출할 채널 정보가 없습니다." }, { status: 400 });
@@ -98,7 +96,6 @@ export async function POST(request: Request) {
         campaign_id: campaignId,
         user_id: user.id,
         channel_type: item.channelType,
-        format_type: formatType,
         post_url: normalizedUrl ?? null,
         post_text: text,
         screenshot_url: item.screenshotUrl?.trim() || null,

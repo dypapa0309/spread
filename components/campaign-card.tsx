@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
-import { channelLabels, experienceTypeLabels, formatLabels, shortDate } from "@/lib/labels";
+import { channelLabels, experienceTypeLabels, shortDate } from "@/lib/labels";
 import type { CampaignView } from "@/types/spread";
 
 export function CampaignCard({ campaign }: { campaign: CampaignView }) {
@@ -26,9 +26,6 @@ export function CampaignCard({ campaign }: { campaign: CampaignView }) {
         <Badge>{campaign.category}</Badge>
         {campaign.channels.map((channel) => (
           <Badge key={channel}>{channelLabels[channel]}</Badge>
-        ))}
-        {campaign.formats.map((format) => (
-          <Badge key={format}>{formatLabels[format]}</Badge>
         ))}
       </div>
       <div className="grid grid-cols-3 gap-3 text-sm">

@@ -70,7 +70,7 @@ export default async function ProfilePage() {
             <h2 className="text-xl font-black">내 성과</h2>
             <div className="mt-4 flex flex-wrap gap-2">
               <Badge active>선호 채널 {stats.preferredChannel}</Badge>
-              <Badge active>강한 포맷 {stats.strongestFormat}</Badge>
+              <Badge active>강한 스타일 {stats.strongestFormat}</Badge>
               <Badge>최근 승인률 {stats.approvalRate}%</Badge>
             </div>
           </Card>

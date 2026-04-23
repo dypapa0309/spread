@@ -119,7 +119,6 @@ export type SubmissionRow = {
   campaign_id: string;
   user_id: string;
   channel_type: "threads" | "x" | "wordpress" | "kakao";
-  format_type: "one_line" | "story" | "comparison" | "question" | "recommendation" | "debate";
   post_url: string | null;
   post_text: string;
   screenshot_url: string | null;

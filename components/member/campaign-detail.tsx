@@ -1,17 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Chip } from "@/components/ui/chip";
 import { Badge } from "@/components/ui/badge";
 import { getApplicationCta } from "@/lib/client-helpers";
-import { channelLabels, experienceTypeLabels, formatLabels, formatTips, reviewModeLabels, shortDate } from "@/lib/labels";
-import type { CampaignView, FormatType, UserPenalty } from "@/types/spread";
+import { channelLabels, experienceTypeLabels, reviewModeLabels, shortDate } from "@/lib/labels";
+import type { CampaignView, UserPenalty } from "@/types/spread";
 
 export function CampaignDetail({ campaign, activePenalty }: { campaign: CampaignView; activePenalty?: UserPenalty }) {
-  const [format, setFormat] = useState<FormatType>(campaign.formats[0]);
-  const tip = formatTips[format];
   const cta = getApplicationCta(campaign.myApplicationStatus, Boolean(activePenalty));
   const ctaHref =
     campaign.myApplicationStatus === "selected"
@@ -53,20 +49,6 @@ export function CampaignDetail({ campaign, activePenalty }: { campaign: Campaign
                 <Row label="방문 주소" value={campaign.venueAddress ?? "선정 후 안내"} />
               </>
             ) : null}
-          </div>
-        </Card>
-        <Card>
-          <h2 className="text-xl font-black">미션 포맷</h2>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {campaign.formats.map((item) => (
-              <Chip key={item} selected={item === format} onClick={() => setFormat(item)}>
-                {formatLabels[item]}
-              </Chip>
-            ))}
-          </div>
-          <div className="mt-5 rounded-spread border border-spread-point bg-spread-point/10 p-4">
-            <p className="text-sm font-black text-spread-point">{tip.guide}</p>
-            <p className="mt-2 text-sm leading-6">{tip.example}</p>
           </div>
         </Card>
         <Card>

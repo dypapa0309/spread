@@ -3,7 +3,6 @@ import type {
   Campaign,
   CampaignApplication,
   CampaignChannel,
-  CampaignFormat,
   CampaignGuideline,
   CampaignView,
   FulfillmentInfo,
@@ -139,16 +138,6 @@ export const campaignChannels: CampaignChannel[] = [
   { id: "cc-7", campaignId: "camp-6", channelType: "x" }
 ];
 
-export const campaignFormats: CampaignFormat[] = [
-  { id: "cf-1", campaignId: "camp-1", formatType: "one_line" },
-  { id: "cf-2", campaignId: "camp-2", formatType: "debate" },
-  { id: "cf-3", campaignId: "camp-2", formatType: "question" },
-  { id: "cf-4", campaignId: "camp-3", formatType: "comparison" },
-  { id: "cf-5", campaignId: "camp-4", formatType: "recommendation" },
-  { id: "cf-6", campaignId: "camp-5", formatType: "question" },
-  { id: "cf-7", campaignId: "camp-6", formatType: "story" }
-];
-
 export const campaignApplications: CampaignApplication[] = [
   { id: "app-1", campaignId: "camp-1", userId: "user-member-1", channelType: "threads", message: "제품을 받아 업무 루틴 문장으로 반응을 만들겠습니다.", status: "selected", applicationPrivacyAgreed: true, applicationPrivacyAgreedAt: "2026-04-20T04:00:00.000Z", appliedAt: "2026-04-20T04:00:00.000Z", decidedAt: "2026-04-20T08:00:00.000Z", decidedBy: "user-admin-1", adminNote: "Threads 반응 속도 좋음" },
   { id: "app-2", campaignId: "camp-1", userId: "user-member-2", channelType: "threads", message: "기록형 콘텐츠 관점으로 제품 첫인상을 남기겠습니다.", status: "selected", applicationPrivacyAgreed: true, applicationPrivacyAgreedAt: "2026-04-20T04:30:00.000Z", appliedAt: "2026-04-20T04:30:00.000Z", decidedAt: "2026-04-20T08:00:00.000Z", decidedBy: "user-admin-1" },
@@ -276,16 +265,16 @@ const result = (score: number, hasFail = false) => ({
 });
 
 export const submissions: Submission[] = [
-  { id: "sub-1", campaignId: "camp-1", userId: "user-member-1", channelType: "threads", formatType: "one_line", postUrl: "https://www.threads.net/@spread_sia/post/1", postText: "팀 기록이 흩어질 때 Nova Desk 하나로 반응을 먼저 모아보는 중. #SPREAD #미션", postedAt: "2026-04-22T09:10:00.000Z", submittedAt: "2026-04-22T09:18:00.000Z", status: "auto_approved", extractedText: "팀 기록이 흩어질 때 Nova Desk 하나로 반응을 먼저 모아보는 중.", autoCheckScore: 86, autoCheckResult: result(86) },
-  { id: "sub-2", campaignId: "camp-2", userId: "user-member-1", channelType: "x", formatType: "debate", postUrl: "https://x.com/spread_sia/status/2", postText: "커피 구독은 취향보다 아침 결정을 줄이는 서비스에 가깝지 않을까. #MellowBean #커피구독", postedAt: "2026-04-22T11:00:00.000Z", submittedAt: "2026-04-22T11:04:00.000Z", status: "needs_review", autoCheckScore: 68, autoCheckResult: result(68) },
-  { id: "sub-3", campaignId: "camp-3", userId: "user-member-2", channelType: "wordpress", formatType: "comparison", postUrl: "https://reviewlab.example.com/fitloop-comparison", postText: "FitLoop 비교 리뷰 본문입니다. 운동 기록, 루틴, 유지, 앱 비교 키워드를 포함합니다.", postedAt: "2026-04-21T12:00:00.000Z", submittedAt: "2026-04-21T12:08:00.000Z", status: "fulfillment_pending", autoCheckScore: 92, autoCheckResult: result(92) },
-  { id: "sub-4", campaignId: "camp-4", userId: "user-member-1", channelType: "kakao", formatType: "recommendation", postText: "부모님께 선물하기 좋은 커피 구독으로 Mellow Bean을 추천.", screenshotUrl: "/mock/kakao-proof.png", postedAt: "2026-04-21T08:30:00.000Z", submittedAt: "2026-04-21T08:36:00.000Z", status: "approved", reviewNote: "스크린샷 확인 완료", autoCheckScore: 74, autoCheckResult: result(74) },
-  { id: "sub-5", campaignId: "camp-5", userId: "user-member-1", channelType: "threads", formatType: "question", postUrl: "https://www.threads.net/@spread_sia/post/5", postText: "팀 노트를 공개 피드로 남기면 참여율이 올라갈까? Nova Desk로 실험 중. #SPREAD #미션", postedAt: "2026-04-20T10:00:00.000Z", submittedAt: "2026-04-20T10:03:00.000Z", status: "completed", autoCheckScore: 88, autoCheckResult: result(88) },
-  { id: "sub-6", campaignId: "camp-6", userId: "user-member-2", channelType: "x", formatType: "story", postUrl: "https://x.com/wordpresso/status/6", postText: "FitLoop streak로 운동 기록을 이어간 이야기.", postedAt: "2026-04-19T10:00:00.000Z", submittedAt: "2026-04-19T10:05:00.000Z", status: "auto_rejected", reviewNote: "최소 길이 미달", autoCheckScore: 42, autoCheckResult: result(42) },
-  { id: "sub-7", campaignId: "camp-1", userId: "user-member-2", channelType: "threads", formatType: "one_line", postUrl: "https://www.threads.net/@wordpresso/post/7", postText: "Nova Desk는 반응을 모으는 업무 메모에 가깝다. #SPREAD #미션", postedAt: "2026-04-22T13:00:00.000Z", submittedAt: "2026-04-22T13:05:00.000Z", status: "submitted", autoCheckScore: 80, autoCheckResult: result(80) },
-  { id: "sub-8", campaignId: "camp-2", userId: "user-member-2", channelType: "x", formatType: "question", postUrl: "https://x.com/wordpresso/status/8", postText: "매일 아침 커피를 고르는 시간이 줄면 루틴이 더 가벼워질까? #MellowBean #커피구독", postedAt: "2026-04-22T14:00:00.000Z", submittedAt: "2026-04-22T14:05:00.000Z", status: "needs_review", autoCheckScore: 71, autoCheckResult: result(71) },
-  { id: "sub-9", campaignId: "camp-3", userId: "user-member-2", channelType: "wordpress", formatType: "comparison", postUrl: "https://reviewlab.example.com/fitloop-vs-apps", postText: "운동 기록 앱 비교 리뷰. FitLoop, 루틴, streak, 운동 기록 키워드를 포함한 장문 글.", postedAt: "2026-04-18T09:00:00.000Z", submittedAt: "2026-04-18T09:06:00.000Z", status: "completed", autoCheckScore: 95, autoCheckResult: result(95) },
-  { id: "sub-10", campaignId: "camp-4", userId: "user-member-1", channelType: "kakao", formatType: "recommendation", postText: "Mellow Bean은 무조건 최고, 100% 만족 보장.", screenshotUrl: "/mock/kakao-proof-2.png", postedAt: "2026-04-22T15:00:00.000Z", submittedAt: "2026-04-22T15:03:00.000Z", status: "rejected", reviewNote: "금지 표현 포함", autoCheckScore: 25, autoCheckResult: result(25, true) }
+  { id: "sub-1", campaignId: "camp-1", userId: "user-member-1", channelType: "threads", postUrl: "https://www.threads.net/@spread_sia/post/1", postText: "팀 기록이 흩어질 때 Nova Desk 하나로 반응을 먼저 모아보는 중. #SPREAD #미션", postedAt: "2026-04-22T09:10:00.000Z", submittedAt: "2026-04-22T09:18:00.000Z", status: "auto_approved", extractedText: "팀 기록이 흩어질 때 Nova Desk 하나로 반응을 먼저 모아보는 중.", autoCheckScore: 86, autoCheckResult: result(86) },
+  { id: "sub-2", campaignId: "camp-2", userId: "user-member-1", channelType: "x", postUrl: "https://x.com/spread_sia/status/2", postText: "커피 구독은 취향보다 아침 결정을 줄이는 서비스에 가깝지 않을까. #MellowBean #커피구독", postedAt: "2026-04-22T11:00:00.000Z", submittedAt: "2026-04-22T11:04:00.000Z", status: "needs_review", autoCheckScore: 68, autoCheckResult: result(68) },
+  { id: "sub-3", campaignId: "camp-3", userId: "user-member-2", channelType: "wordpress", postUrl: "https://reviewlab.example.com/fitloop-comparison", postText: "FitLoop 비교 리뷰 본문입니다. 운동 기록, 루틴, 유지, 앱 비교 키워드를 포함합니다.", postedAt: "2026-04-21T12:00:00.000Z", submittedAt: "2026-04-21T12:08:00.000Z", status: "fulfillment_pending", autoCheckScore: 92, autoCheckResult: result(92) },
+  { id: "sub-4", campaignId: "camp-4", userId: "user-member-1", channelType: "kakao", postText: "부모님께 선물하기 좋은 커피 구독으로 Mellow Bean을 추천.", screenshotUrl: "/mock/kakao-proof.png", postedAt: "2026-04-21T08:30:00.000Z", submittedAt: "2026-04-21T08:36:00.000Z", status: "approved", reviewNote: "스크린샷 확인 완료", autoCheckScore: 74, autoCheckResult: result(74) },
+  { id: "sub-5", campaignId: "camp-5", userId: "user-member-1", channelType: "threads", postUrl: "https://www.threads.net/@spread_sia/post/5", postText: "팀 노트를 공개 피드로 남기면 참여율이 올라갈까? Nova Desk로 실험 중. #SPREAD #미션", postedAt: "2026-04-20T10:00:00.000Z", submittedAt: "2026-04-20T10:03:00.000Z", status: "completed", autoCheckScore: 88, autoCheckResult: result(88) },
+  { id: "sub-6", campaignId: "camp-6", userId: "user-member-2", channelType: "x", postUrl: "https://x.com/wordpresso/status/6", postText: "FitLoop streak로 운동 기록을 이어간 이야기.", postedAt: "2026-04-19T10:00:00.000Z", submittedAt: "2026-04-19T10:05:00.000Z", status: "auto_rejected", reviewNote: "최소 길이 미달", autoCheckScore: 42, autoCheckResult: result(42) },
+  { id: "sub-7", campaignId: "camp-1", userId: "user-member-2", channelType: "threads", postUrl: "https://www.threads.net/@wordpresso/post/7", postText: "Nova Desk는 반응을 모으는 업무 메모에 가깝다. #SPREAD #미션", postedAt: "2026-04-22T13:00:00.000Z", submittedAt: "2026-04-22T13:05:00.000Z", status: "submitted", autoCheckScore: 80, autoCheckResult: result(80) },
+  { id: "sub-8", campaignId: "camp-2", userId: "user-member-2", channelType: "x", postUrl: "https://x.com/wordpresso/status/8", postText: "매일 아침 커피를 고르는 시간이 줄면 루틴이 더 가벼워질까? #MellowBean #커피구독", postedAt: "2026-04-22T14:00:00.000Z", submittedAt: "2026-04-22T14:05:00.000Z", status: "needs_review", autoCheckScore: 71, autoCheckResult: result(71) },
+  { id: "sub-9", campaignId: "camp-3", userId: "user-member-2", channelType: "wordpress", postUrl: "https://reviewlab.example.com/fitloop-vs-apps", postText: "운동 기록 앱 비교 리뷰. FitLoop, 루틴, streak, 운동 기록 키워드를 포함한 장문 글.", postedAt: "2026-04-18T09:00:00.000Z", submittedAt: "2026-04-18T09:06:00.000Z", status: "completed", autoCheckScore: 95, autoCheckResult: result(95) },
+  { id: "sub-10", campaignId: "camp-4", userId: "user-member-1", channelType: "kakao", postText: "Mellow Bean은 무조건 최고, 100% 만족 보장.", screenshotUrl: "/mock/kakao-proof-2.png", postedAt: "2026-04-22T15:00:00.000Z", submittedAt: "2026-04-22T15:03:00.000Z", status: "rejected", reviewNote: "금지 표현 포함", autoCheckScore: 25, autoCheckResult: result(25, true) }
 ];
 
 export const metrics: SubmissionMetrics[] = submissions.map((submission, index) => ({
@@ -307,7 +296,6 @@ export function getCampaignViews(): CampaignView[] {
     ...campaign,
     brand: brands.find((brand) => brand.id === campaign.brandId)!,
     channels: campaignChannels.filter((item) => item.campaignId === campaign.id).map((item) => item.channelType),
-    formats: campaignFormats.filter((item) => item.campaignId === campaign.id).map((item) => item.formatType),
     guideline: guidelines.find((item) => item.campaignId === campaign.id)!,
     submissionsCount: submissions.filter((item) => item.campaignId === campaign.id).length,
     applicationsCount: campaignApplications.filter((item) => item.campaignId === campaign.id).length,

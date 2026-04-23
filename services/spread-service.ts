@@ -42,7 +42,6 @@ export async function listCampaigns(filters?: {
   query?: string;
   status?: CampaignStatus | "all";
   channel?: string;
-  format?: string;
 }): Promise<CampaignView[]> {
   if (isLive) return real.listCampaigns(filters);
 
@@ -53,8 +52,7 @@ export async function listCampaigns(filters?: {
       : true;
     const statusMatch = !filters?.status || filters.status === "all" ? true : campaign.status === filters.status;
     const channelMatch = !filters?.channel || filters.channel === "all" ? true : campaign.channels.includes(filters.channel as never);
-    const formatMatch = !filters?.format || filters.format === "all" ? true : campaign.formats.includes(filters.format as never);
-    return queryMatch && statusMatch && channelMatch && formatMatch;
+    return queryMatch && statusMatch && channelMatch;
   });
 }
 
@@ -113,7 +111,7 @@ export async function getMemberProfile(userId = mock.currentMember.id) {
       totalApplications: applications.length,
       approvalRate: submissions.length ? Math.round((approved / submissions.length) * 100) : 0,
       preferredChannel: "Threads",
-      strongestFormat: "질문/한줄 반응"
+      strongestFormat: "반응형 콘텐츠"
     }
   };
 }
@@ -199,7 +197,6 @@ export async function getCampaignDraftPresets(brandId = "brand-1"): Promise<Camp
     offerDescription: c.offerDescription,
     offerValueLabel: c.offerValueLabel,
     channels: c.channels,
-    formats: c.formats,
     keyMessage: c.guideline.keyMessage
   }));
 }

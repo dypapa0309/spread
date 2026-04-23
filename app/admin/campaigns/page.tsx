@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { LinkButton } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { channelLabels, experienceTypeLabels, formatLabels } from "@/lib/labels";
+import { channelLabels, experienceTypeLabels } from "@/lib/labels";
 import { listCampaigns } from "@/services/spread-service";
 
 export default async function AdminCampaignsPage() {
@@ -14,7 +14,7 @@ export default async function AdminCampaignsPage() {
         <div className="flex items-end justify-between gap-3">
           <div>
             <h1 className="text-4xl font-black">캠페인 관리</h1>
-            <p className="mt-2 text-sm text-spread-ink/65">상태, 채널, 포맷, 체험 제공 정보를 빠르게 확인합니다.</p>
+            <p className="mt-2 text-sm text-spread-ink/65">상태, 채널, 체험 제공 정보를 빠르게 확인합니다.</p>
           </div>
           <LinkButton href="/admin/campaigns/new">새 캠페인</LinkButton>
         </div>
@@ -36,7 +36,6 @@ export default async function AdminCampaignsPage() {
                 <Badge active>{experienceTypeLabels[campaign.experienceType]}</Badge>
                 <Badge>{campaign.category}</Badge>
                 {campaign.channels.map((channel) => <Badge key={channel}>{channelLabels[channel]}</Badge>)}
-                {campaign.formats.map((format) => <Badge key={format}>{formatLabels[format]}</Badge>)}
                 <Badge>{campaign.offerValueLabel}</Badge>
                 <Badge>지원 {campaign.applicationsCount}명</Badge>
                 <Badge active>선정 {campaign.selectedCount}명</Badge>

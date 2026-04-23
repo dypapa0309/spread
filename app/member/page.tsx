@@ -1,14 +1,12 @@
 import { AppShell } from "@/components/app-shell";
 import { CampaignCard } from "@/components/campaign-card";
 import { MemberStatsModal } from "@/components/member/member-stats-modal";
-import { Badge } from "@/components/ui/badge";
 import { Card, Section } from "@/components/ui/card";
-import { channelLabels, channelRoles, formatLabels } from "@/lib/labels";
+import { channelLabels, channelRoles } from "@/lib/labels";
 import { getServerUser, listCampaigns } from "@/services/spread-service";
-import type { ChannelType, FormatType } from "@/types/spread";
+import type { ChannelType } from "@/types/spread";
 
 const channels: ChannelType[] = ["threads", "x", "wordpress", "kakao"];
-const formats: FormatType[] = ["one_line", "story", "comparison", "question", "recommendation", "debate"];
 
 export default async function MemberHomePage() {
   const [campaigns, user] = await Promise.all([
@@ -52,11 +50,11 @@ export default async function MemberHomePage() {
               </div>
             </Card>
             <Card>
-              <h2 className="text-lg font-black">포맷 탐색</h2>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {formats.map((format) => (
-                  <Badge key={format}>{formatLabels[format]}</Badge>
-                ))}
+              <h2 className="text-lg font-black">운영 포인트</h2>
+              <div className="mt-4 grid gap-2 text-sm text-spread-ink/70">
+                <p className="rounded-2xl border border-spread-ink/10 px-4 py-3">선정된 뒤에만 제출이 열립니다.</p>
+                <p className="rounded-2xl border border-spread-ink/10 px-4 py-3">모든 필수 채널을 제출해야 처리 완료 후보가 됩니다.</p>
+                <p className="rounded-2xl border border-spread-ink/10 px-4 py-3">콘텐츠 유지기간은 6개월입니다.</p>
               </div>
             </Card>
           </div>

@@ -8,13 +8,12 @@ import { listCampaigns } from "@/services/spread-service";
 export default async function CampaignsPage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string; channel?: string; format?: string; status?: string; sort?: string }>;
+  searchParams: Promise<{ q?: string; channel?: string; status?: string; sort?: string }>;
 }) {
   const params = await searchParams;
   const campaigns = await listCampaigns({
     query: params.q,
     channel: params.channel,
-    format: params.format,
     status: params.status as never
   });
   const sorted =
@@ -29,10 +28,10 @@ export default async function CampaignsPage({
       <Section className="grid gap-5">
         <div>
           <h1 className="text-4xl font-black">캠페인</h1>
-          <p className="mt-2 text-sm text-spread-ink/65">채널과 포맷을 골라 오늘 퍼뜨릴 반응을 찾으세요.</p>
+          <p className="mt-2 text-sm text-spread-ink/65">채널과 상태를 골라 오늘 퍼뜨릴 반응을 찾으세요.</p>
         </div>
         <Card>
-          <form className="grid gap-3 md:grid-cols-5">
+          <form className="grid gap-3 md:grid-cols-4">
             <Field label="검색">
               <Input name="q" defaultValue={params.q} placeholder="브랜드, 미션" />
             </Field>
@@ -43,15 +42,6 @@ export default async function CampaignsPage({
                 <option value="x">X</option>
                 <option value="wordpress">WordPress</option>
                 <option value="kakao">KakaoTalk</option>
-              </Select>
-            </Field>
-            <Field label="포맷">
-              <Select name="format" defaultValue={params.format ?? "all"}>
-                <option value="all">전체</option>
-                <option value="one_line">한줄</option>
-                <option value="comparison">비교</option>
-                <option value="question">질문</option>
-                <option value="recommendation">추천</option>
               </Select>
             </Field>
             <Field label="상태">

@@ -155,7 +155,6 @@ export function mapSubmission(row: SubmissionRow): Submission {
     campaignId: row.campaign_id,
     userId: row.user_id,
     channelType: row.channel_type,
-    formatType: row.format_type,
     postUrl: row.post_url ?? undefined,
     postText: row.post_text,
     screenshotUrl: row.screenshot_url ?? undefined,

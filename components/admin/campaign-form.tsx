@@ -7,13 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { channelLabels, formatLabels, industryOptions, localCategoryOptions, productCategoryOptions } from "@/lib/labels";
+import { channelLabels, industryOptions, localCategoryOptions, productCategoryOptions } from "@/lib/labels";
 import { uploadCampaignCoverImage } from "@/services/campaign-assets";
 import type { SaveCampaignInput, SaveCampaignResult } from "@/services/campaign-write-service";
-import type { CampaignDraftPreset, CampaignView, ChannelType, ExperienceType, FormatType, Industry, ReviewMode } from "@/types/spread";
+import type { CampaignDraftPreset, CampaignView, ChannelType, ExperienceType, Industry, ReviewMode } from "@/types/spread";
 
 const channels: ChannelType[] = ["threads", "x", "wordpress", "kakao"];
-const formats: FormatType[] = ["one_line", "story", "comparison", "question", "recommendation", "debate"];
 
 const presets: CampaignDraftPreset[] = [
   {
@@ -26,7 +25,6 @@ const presets: CampaignDraftPreset[] = [
     offerDescription: "협업 기록 앱 30일 이용권과 데스크 노트 키트를 제공합니다.",
     offerValueLabel: "제품 배송",
     channels: ["threads"],
-    formats: [],
     keyMessage: "Nova Desk는 작은 반응을 빠르게 만들 수 있다."
   },
   {
@@ -39,14 +37,12 @@ const presets: CampaignDraftPreset[] = [
     offerDescription: "예약 시간에 방문해 시음과 원두 설명을 체험합니다.",
     offerValueLabel: "방문 체험",
     channels: ["kakao"],
-    formats: [],
     keyMessage: "Mellow Bean은 작은 반응을 빠르게 만들 수 있다."
   }
 ];
 
 export function CampaignForm({ mode = "new", initialCampaign }: { mode?: "new" | "edit"; initialCampaign?: CampaignView }) {
   const [selectedChannels, setSelectedChannels] = useState<ChannelType[]>(initialCampaign?.channels ?? ["threads"]);
-  const [selectedFormats, setSelectedFormats] = useState<FormatType[]>(initialCampaign?.formats.length ? initialCampaign.formats : ["one_line"]);
   const [experienceType, setExperienceType] = useState<ExperienceType>(initialCampaign?.experienceType ?? "product");
   const [industry, setIndustry] = useState<Industry>(initialCampaign?.industry ?? "푸드");
   const [category, setCategory] = useState<string>(initialCampaign?.category ?? "식품");
@@ -72,7 +68,6 @@ export function CampaignForm({ mode = "new", initialCampaign }: { mode?: "new" |
     setOfferTitle(preset.offerTitle);
     setOfferDescription(preset.offerDescription);
     setSelectedChannels(preset.channels);
-    setSelectedFormats(preset.formats.length ? preset.formats : ["one_line"]);
     setIndustry(preset.industry);
     setCategory(preset.category);
   }
@@ -109,7 +104,6 @@ export function CampaignForm({ mode = "new", initialCampaign }: { mode?: "new" |
           venueAddress: readString(formData, "venueAddress"),
           venueName: readString(formData, "venueName") || offerTitle,
           channels: selectedChannels,
-          formats: selectedFormats,
           keyMessage: readString(formData, "keyMessage"),
           requiredHashtags: splitList(readString(formData, "requiredHashtags")),
           requiredPoints: splitList(readString(formData, "requiredPoints")),
@@ -294,19 +288,6 @@ export function CampaignForm({ mode = "new", initialCampaign }: { mode?: "new" |
           </div>
         </Card>
 
-        {/* 포맷 선택 */}
-        <Card>
-          <SectionTitle>포맷 선택</SectionTitle>
-          <p className="mt-1 text-sm text-spread-ink/55">참여자가 작성할 콘텐츠 포맷을 선택하세요.</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {formats.map((format) => (
-              <Chip key={format} selected={selectedFormats.includes(format)} onClick={() => toggle(format, selectedFormats, setSelectedFormats)}>
-                {formatLabels[format]}
-              </Chip>
-            ))}
-          </div>
-        </Card>
-
         {/* 가이드라인 */}
         <Card>
           <SectionTitle>가이드라인</SectionTitle>
@@ -382,14 +363,6 @@ export function CampaignForm({ mode = "new", initialCampaign }: { mode?: "new" |
               {selectedChannels.length > 0
                 ? selectedChannels.map((ch) => <Badge key={ch} active>{channelLabels[ch]}</Badge>)
                 : <span className="text-xs text-spread-ink/40">채널을 선택하세요</span>}
-            </div>
-          </Card>
-          <Card>
-            <p className="text-xs font-black uppercase tracking-wider text-spread-ink/50">선택 포맷</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {selectedFormats.length > 0
-                ? selectedFormats.map((format) => <Badge key={format}>{formatLabels[format]}</Badge>)
-                : <span className="text-xs text-spread-ink/40">포맷을 선택하세요</span>}
             </div>
           </Card>
         </div>

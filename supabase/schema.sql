@@ -1,6 +1,5 @@
 create type user_role as enum ('member', 'admin', 'brand');
 create type channel_type as enum ('threads', 'x', 'wordpress', 'kakao');
-create type format_type as enum ('one_line', 'story', 'comparison', 'question', 'recommendation', 'debate');
 create type campaign_status as enum ('draft', 'open', 'closed', 'paused', 'completed');
 create type review_mode as enum ('manual', 'semi_auto', 'auto');
 create type submission_status as enum ('submitted', 'processing', 'needs_review', 'auto_approved', 'auto_rejected', 'approved', 'rejected', 'fulfillment_pending', 'completed', 'revoked');
@@ -98,12 +97,6 @@ create table public.campaign_channels (
   channel_type channel_type not null
 );
 
-create table public.campaign_formats (
-  id uuid primary key default gen_random_uuid(),
-  campaign_id uuid references public.campaigns(id) on delete cascade,
-  format_type format_type not null
-);
-
 create table public.campaign_guidelines (
   id uuid primary key default gen_random_uuid(),
   campaign_id uuid references public.campaigns(id) on delete cascade,
@@ -156,7 +149,6 @@ create table public.submissions (
   campaign_id uuid references public.campaigns(id),
   user_id uuid references public.users(id),
   channel_type channel_type not null,
-  format_type format_type not null,
   post_url text,
   post_text text not null,
   screenshot_url text,

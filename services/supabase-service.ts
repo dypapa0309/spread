@@ -128,7 +128,6 @@ export async function getServerUser(): Promise<User | null> {
 type CampaignWithRelations = CampaignRow & {
   brand: BrandRow;
   campaign_channels: { channel_type: string }[];
-  campaign_formats: { format_type: string }[];
   campaign_guidelines: CampaignGuidelineRow[];
 };
 
@@ -168,7 +167,6 @@ async function buildCampaignViews(
       ...mapCampaign(row),
       brand: mapBrand(row.brand),
       channels: row.campaign_channels.map((c) => c.channel_type as ChannelType),
-      formats: row.campaign_formats.map((f) => f.format_type as never),
       guideline,
       applicationsCount: uniqueCount(apps, (a) => a.user_id),
       selectedCount: uniqueCount(apps.filter((a) => a.status === "selected"), (a) => a.user_id),
@@ -184,7 +182,6 @@ const CAMPAIGN_SELECT = `
   *,
   brand:brands!brand_id(*),
   campaign_channels(channel_type),
-  campaign_formats(format_type),
   campaign_guidelines(*)
 `;
 
@@ -192,7 +189,6 @@ export async function listCampaigns(filters?: {
   query?: string;
   status?: CampaignStatus | "all";
   channel?: string;
-  format?: string;
 }): Promise<CampaignView[]> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -222,12 +218,6 @@ export async function listCampaigns(filters?: {
       r.campaign_channels.some((c) => c.channel_type === filters.channel)
     );
   }
-  if (filters?.format && filters.format !== "all") {
-    rows = rows.filter((r) =>
-      r.campaign_formats.some((f) => f.format_type === filters.format)
-    );
-  }
-
   return buildCampaignViews(rows, user?.id);
 }
 
@@ -494,7 +484,6 @@ export async function getCampaignDraftPresets(brandId: string): Promise<Campaign
     offerDescription: c.offerDescription,
     offerValueLabel: c.offerValueLabel,
     channels: c.channels,
-    formats: c.formats,
     keyMessage: c.guideline.keyMessage
   }));
 }
