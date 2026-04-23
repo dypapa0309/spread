@@ -9,6 +9,16 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 
 const isMock = !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
+function translateAuthError(message: string): string {
+  if (message.includes("rate limit")) return "잠시 후 다시 시도해 주세요. (이메일 발송 횟수 초과)";
+  if (message.includes("already registered") || message.includes("User already registered")) return "이미 가입된 이메일입니다. 로그인 탭을 이용해 주세요.";
+  if (message.includes("Invalid login credentials")) return "이메일 또는 비밀번호가 올바르지 않습니다.";
+  if (message.includes("Email not confirmed")) return "이메일 인증이 완료되지 않았습니다. 받은 편지함을 확인해 주세요.";
+  if (message.includes("Password should be")) return "비밀번호는 6자 이상이어야 합니다.";
+  if (message.includes("Unable to validate email")) return "유효하지 않은 이메일 형식입니다.";
+  return message;
+}
+
 type Tab = "login" | "signup" | "brand";
 
 export default function LoginPage() {
@@ -58,7 +68,7 @@ function LoginForm() {
       const { createClient } = await import("@/supabase/client");
       const supabase = createClient();
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) { setError(authError.message); setLoading(false); return; }
+      if (authError) { setError(translateAuthError(authError.message)); setLoading(false); return; }
 
       const { data: userRow } = await supabase.from("users").select("role").eq("id", data.user.id).single();
       const role = userRow?.role ?? "member";
@@ -143,7 +153,7 @@ function SignupForm() {
         }
       });
 
-      if (signUpError) { setError(signUpError.message); setLoading(false); return; }
+      if (signUpError) { setError(translateAuthError(signUpError.message)); setLoading(false); return; }
 
       if (data.session) {
         await supabase.from("users").upsert({ id: data.user!.id, role: "member", name, nickname, email, bio: "", level: 1, score: 0, completed_missions: 0, status: "active" });
@@ -271,7 +281,7 @@ function BrandSignupForm() {
           data: { role: "brand", brand_name: brandName, contact_name: contactName }
         }
       });
-      if (authError) { setError(authError.message); setLoading(false); return; }
+      if (authError) { setError(translateAuthError(authError.message)); setLoading(false); return; }
 
       const userId = authData.user?.id;
       if (!userId) { setError("계정 생성에 실패했습니다."); setLoading(false); return; }

@@ -29,7 +29,10 @@ export function AppShell({ children, role = "member" }: { children: ReactNode; r
     <div className="min-h-screen bg-spread-bg text-spread-ink">
       <header className="sticky top-0 z-20 border-b border-spread-ink/10 bg-spread-bg/95 backdrop-blur">
         <div className="mx-auto flex min-h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link href="/" className="text-lg font-black tracking-normal">
+          <Link
+            href={role === "member" ? "/member" : role === "admin" ? "/admin" : role === "brand" ? "/brand" : "/"}
+            className="text-lg font-black tracking-normal"
+          >
             SPREAD
           </Link>
           {role === "public" ? (
