@@ -1,6 +1,5 @@
 "use client";
 
-import { logout } from "@/app/auth/actions";
 import { useState } from "react";
 
 export function LogoutButton() {
@@ -8,7 +7,11 @@ export function LogoutButton() {
 
   async function handleLogout() {
     setLoading(true);
-    await logout();
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      window.location.href = "/login";
+    }
   }
 
   return (
