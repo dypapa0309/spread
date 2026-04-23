@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/supabase/server";
+import { createAdminClient } from "@/supabase/admin";
 import type { ChannelType, ExperienceType, FormatType, Industry, ReviewMode } from "@/types/spread";
 
 export type SaveCampaignInput = {
@@ -39,14 +40,14 @@ export type SaveCampaignResult =
   | { ok: false; message: string };
 
 export async function saveCampaign(input: SaveCampaignInput): Promise<SaveCampaignResult> {
-  const supabase = await createClient();
+  const userSupabase = await createClient();
   const {
     data: { user: authUser }
-  } = await supabase.auth.getUser();
+  } = await userSupabase.auth.getUser();
 
   if (!authUser) return { ok: false, message: "로그인이 필요합니다." };
 
-  const { data: currentUser } = await supabase
+  const { data: currentUser } = await userSupabase
     .from("users")
     .select("id, role, email, name, nickname")
     .eq("id", authUser.id)
@@ -59,11 +60,16 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<SaveCampai
     };
   }
 
+  if (!["admin", "brand"].includes(currentUser.role)) {
+    return { ok: false, message: "캠페인 등록은 관리자 또는 광고주 계정만 가능합니다." };
+  }
+
+  const adminSupabase = createAdminClient();
   const brandId = await resolveCampaignBrandId({
-    supabase,
+    supabase: adminSupabase,
     userEmail: currentUser.email ?? authUser.email ?? "",
     userName: currentUser.name ?? currentUser.nickname ?? "SPREAD 브랜드",
-    isAdmin: currentUser.role === "admin"
+    role: currentUser.role
   });
 
   if (!brandId) {
@@ -71,6 +77,19 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<SaveCampai
       ok: false,
       message: "캠페인에 연결할 브랜드가 없습니다. 브랜드 계정으로 등록하거나 관리자 권한을 확인해 주세요."
     };
+  }
+
+  if (currentUser.role === "brand") {
+    const { count, error: countError } = await adminSupabase
+      .from("campaigns")
+      .select("id", { count: "exact", head: true })
+      .eq("brand_id", brandId)
+      .in("status", ["draft", "open", "paused"]);
+
+    if (countError) return { ok: false, message: `캠페인 한도 확인 실패: ${countError.message}` };
+    if ((count ?? 0) >= 2) {
+      return { ok: false, message: "광고주는 동시 진행 캠페인을 최대 2개까지만 등록할 수 있습니다." };
+    }
   }
 
   const now = new Date();
@@ -89,7 +108,7 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<SaveCampai
   if (!input.channels.length) return { ok: false, message: "채널을 하나 이상 선택해 주세요." };
   if (!input.formats.length) return { ok: false, message: "미션 포맷을 하나 이상 선택해 주세요." };
 
-  const { data: campaign, error: campaignError } = await supabase
+  const { data: campaign, error: campaignError } = await adminSupabase
     .from("campaigns")
     .insert({
       brand_id: brandId,
@@ -130,15 +149,15 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<SaveCampai
   const campaignId = campaign.id as string;
 
   const [{ error: channelsError }, { error: formatsError }, { error: guidelineError }] = await Promise.all([
-    supabase.from("campaign_channels").insert(input.channels.map((channelType) => ({
+    adminSupabase.from("campaign_channels").insert(input.channels.map((channelType) => ({
       campaign_id: campaignId,
       channel_type: channelType
     }))),
-    supabase.from("campaign_formats").insert(input.formats.map((formatType) => ({
+    adminSupabase.from("campaign_formats").insert(input.formats.map((formatType) => ({
       campaign_id: campaignId,
       format_type: formatType
     }))),
-    supabase.from("campaign_guidelines").insert({
+    adminSupabase.from("campaign_guidelines").insert({
       campaign_id: campaignId,
       key_message: input.keyMessage.trim() || title,
       required_points: input.requiredPoints,
@@ -157,7 +176,7 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<SaveCampai
 
   const relationError = channelsError ?? formatsError ?? guidelineError;
   if (relationError) {
-    await supabase.from("campaigns").delete().eq("id", campaignId);
+    await adminSupabase.from("campaigns").delete().eq("id", campaignId);
     return { ok: false, message: `캠페인 부가 정보 저장 실패: ${relationError.message}` };
   }
 
@@ -168,12 +187,12 @@ async function resolveCampaignBrandId({
   supabase,
   userEmail,
   userName,
-  isAdmin
+  role
 }: {
-  supabase: Awaited<ReturnType<typeof createClient>>;
+  supabase: ReturnType<typeof createAdminClient>;
   userEmail: string;
   userName: string;
-  isAdmin: boolean;
+  role: string;
 }) {
   const { data: ownBrand } = await supabase
     .from("brands")
@@ -191,7 +210,7 @@ async function resolveCampaignBrandId({
     .maybeSingle();
 
   if (firstBrand?.id) return firstBrand.id as string;
-  if (!isAdmin) return null;
+  if (!["admin", "brand"].includes(role)) return null;
 
   const { data: createdBrand } = await supabase
     .from("brands")
