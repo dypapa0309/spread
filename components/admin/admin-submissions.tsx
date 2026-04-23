@@ -12,7 +12,7 @@ const actions: { label: string; status: SubmissionStatus }[] = [
   { label: "승인", status: "approved" },
   { label: "반려", status: "rejected" },
   { label: "보류", status: "needs_review" },
-  { label: "보상 확정", status: "reward_pending" }
+  { label: "체험 완료", status: "completed" }
 ];
 
 export function AdminSubmissions({ initialSubmissions }: { initialSubmissions: SubmissionView[] }) {

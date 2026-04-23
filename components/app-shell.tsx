@@ -15,8 +15,13 @@ const adminNav = [
   ["제출물", "/admin/submissions"]
 ];
 
-export function AppShell({ children, role = "member" }: { children: ReactNode; role?: "member" | "admin" | "public" }) {
-  const nav = role === "admin" ? adminNav : memberNav;
+const brandNav = [
+  ["대시보드", "/brand"],
+  ["캠페인", "/brand/campaigns"]
+];
+
+export function AppShell({ children, role = "member" }: { children: ReactNode; role?: "member" | "admin" | "brand" | "public" }) {
+  const nav = role === "admin" ? adminNav : role === "brand" ? brandNav : memberNav;
 
   return (
     <div className="min-h-screen bg-spread-bg text-spread-ink">
@@ -36,7 +41,7 @@ export function AppShell({ children, role = "member" }: { children: ReactNode; r
           ) : null}
           <div className="flex items-center gap-2">
             {role === "admin" ? <LinkButton href="/member" variant="outline">멤버 보기</LinkButton> : null}
-            {role !== "admin" ? <LinkButton href="/admin" variant="outline">Admin</LinkButton> : null}
+            {role === "brand" ? <LinkButton href="/member" variant="outline">사용자 보기</LinkButton> : null}
           </div>
         </div>
         {role !== "public" ? (
@@ -50,6 +55,11 @@ export function AppShell({ children, role = "member" }: { children: ReactNode; r
         ) : null}
       </header>
       {children}
+      {role === "public" ? (
+        <footer className="mx-auto flex w-full max-w-6xl justify-end px-4 pb-6 text-xs text-spread-ink/45 sm:px-6">
+          <Link href="/admin">운영자</Link>
+        </footer>
+      ) : null}
     </div>
   );
 }

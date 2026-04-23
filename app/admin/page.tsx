@@ -3,7 +3,6 @@ import { MetricCard } from "@/components/metric-card";
 import { SubmissionList } from "@/components/submission-list";
 import { LinkButton } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
-import { money } from "@/lib/labels";
 import { getAdminSummary } from "@/services/spread-service";
 
 export default async function AdminPage() {
@@ -23,9 +22,9 @@ export default async function AdminPage() {
           <MetricCard label="진행 캠페인" value={`${summary.activeCampaigns}`} />
           <MetricCard label="오늘 제출" value={`${summary.todaySubmissions}`} />
           <MetricCard label="승인율" value={`${summary.approvalRate}%`} />
-          <MetricCard label="보상 예정" value={money(summary.rewardPending)} />
+          <MetricCard label="신청 대기" value={`${summary.applicationPending}`} />
           <MetricCard label="자동 승인" value={`${summary.autoApproved}`} />
-          <MetricCard label="선정 대기" value={`${summary.applicationPending}`} />
+          <MetricCard label="수동 검수" value={`${summary.needsReview}`} />
         </div>
         <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
           <div>

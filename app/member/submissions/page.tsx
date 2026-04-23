@@ -11,12 +11,12 @@ export default async function MemberSubmissionsPage() {
       <Section className="grid gap-5">
         <div>
           <h1 className="text-4xl font-black">내 제출 내역</h1>
-          <p className="mt-2 text-sm text-spread-ink/65">자동 체크 점수, 상태, 보상 흐름을 한 번에 봅니다.</p>
+          <p className="mt-2 text-sm text-spread-ink/65">자동 체크 점수, 상태, 체험 처리 흐름을 한 번에 봅니다.</p>
         </div>
         <Card className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Mini label="전체" value={`${submissions.length}`} />
           <Mini label="검수 필요" value={`${submissions.filter((item) => item.status === "needs_review").length}`} />
-          <Mini label="승인/지급" value={`${submissions.filter((item) => ["approved", "paid", "reward_pending", "auto_approved"].includes(item.status)).length}`} />
+          <Mini label="승인/완료" value={`${submissions.filter((item) => ["approved", "completed", "fulfillment_pending", "auto_approved"].includes(item.status)).length}`} />
           <Mini label="평균 점수" value={`${Math.round(submissions.reduce((sum, item) => sum + item.autoCheckScore, 0) / submissions.length)}`} />
         </Card>
         <SubmissionList submissions={submissions} />

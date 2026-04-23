@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
-import { channelLabels, formatLabels, money, shortDate } from "@/lib/labels";
+import { channelLabels, experienceTypeLabels, formatLabels, shortDate } from "@/lib/labels";
 import type { CampaignView } from "@/types/spread";
 
 export function CampaignCard({ campaign }: { campaign: CampaignView }) {
@@ -21,6 +21,9 @@ export function CampaignCard({ campaign }: { campaign: CampaignView }) {
       </div>
       <p className="text-sm leading-6 text-spread-ink/72">{campaign.summary}</p>
       <div className="flex flex-wrap gap-2">
+        <Badge active>{experienceTypeLabels[campaign.experienceType]}</Badge>
+        <Badge>{campaign.industry}</Badge>
+        <Badge>{campaign.category}</Badge>
         {campaign.channels.map((channel) => (
           <Badge key={channel}>{channelLabels[channel]}</Badge>
         ))}
@@ -44,12 +47,12 @@ export function CampaignCard({ campaign }: { campaign: CampaignView }) {
       </div>
       <div className="grid grid-cols-3 gap-3 text-sm">
         <div>
-          <p className="text-xs text-spread-ink/55">보상</p>
-          <p className="font-black">{money(campaign.baseReward)}</p>
+          <p className="text-xs text-spread-ink/55">제공</p>
+          <p className="font-black">{campaign.offerValueLabel}</p>
         </div>
         <div>
-          <p className="text-xs text-spread-ink/55">보너스</p>
-          <p className="font-black">{money(campaign.bonusRewardMax)}</p>
+          <p className="text-xs text-spread-ink/55">지역</p>
+          <p className="font-black">{campaign.regionDistrict ?? "배송"}</p>
         </div>
         <div>
           <p className="text-xs text-spread-ink/55">마감</p>

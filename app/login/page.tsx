@@ -1,26 +1,34 @@
+"use client";
+
+import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 import { LinkButton } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/field";
 
 export default function LoginPage() {
+  const [tab, setTab] = useState<"member" | "brand">("member");
+
   return (
     <AppShell role="public">
       <Section className="grid min-h-[calc(100vh-64px)] place-items-center">
         <div className="grid w-full max-w-5xl gap-5 lg:grid-cols-[0.8fr_1.2fr]">
         <Card>
-          <h1 className="text-3xl font-black">SPREAD 진입</h1>
+          <h1 className="text-3xl font-black">SPREAD 로그인</h1>
           <p className="mt-2 text-sm leading-6 text-spread-ink/65">
-            MVP에서는 더미 역할로 바로 진입합니다. Supabase Auth는 이 폼의 submit 지점에 연결하면 됩니다.
+            사용자와 광고주 진입을 나눕니다. Supabase Auth는 이 폼의 submit 지점에 연결하면 됩니다.
           </p>
+          <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl border border-spread-ink/10 p-1">
+            <button type="button" className={`rounded-xl px-3 py-2 text-sm font-black ${tab === "member" ? "bg-spread-point text-white" : ""}`} onClick={() => setTab("member")}>사용자</button>
+            <button type="button" className={`rounded-xl px-3 py-2 text-sm font-black ${tab === "brand" ? "bg-spread-point text-white" : ""}`} onClick={() => setTab("brand")}>광고주</button>
+          </div>
           <div className="mt-6 grid gap-4">
             <Field label="이메일">
-              <Input placeholder="you@example.com" defaultValue="sia@example.com" />
+              <Input placeholder="you@example.com" defaultValue={tab === "member" ? "sia@example.com" : "brand@nova.example.com"} />
             </Field>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <LinkButton href="/member">member로 시작</LinkButton>
-              <LinkButton href="/admin" variant="outline">admin으로 시작</LinkButton>
-            </div>
+            <LinkButton href={tab === "member" ? "/member" : "/brand"}>
+              {tab === "member" ? "사용자로 시작" : "광고주로 시작"}
+            </LinkButton>
           </div>
         </Card>
         <Card>

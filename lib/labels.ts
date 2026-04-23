@@ -1,4 +1,4 @@
-import type { ApplicationStatus, ChannelType, FormatType, ReviewMode, SubmissionStatus, VerificationStatus } from "@/types/spread";
+import type { ApplicationStatus, ChannelType, ExperienceType, FormatType, Industry, ReviewMode, SubmissionStatus, VerificationStatus } from "@/types/spread";
 
 export const channelLabels: Record<ChannelType, string> = {
   threads: "Threads",
@@ -64,10 +64,33 @@ export const submissionStatusLabels: Record<SubmissionStatus, string> = {
   auto_rejected: "자동 반려",
   approved: "승인",
   rejected: "반려",
-  reward_pending: "보상 대기",
-  paid: "지급 완료",
+  fulfillment_pending: "처리 대기",
+  completed: "체험 완료",
   revoked: "취소"
 };
+
+export const experienceTypeLabels: Record<ExperienceType, string> = {
+  product: "제품 제공",
+  local: "방문 체험"
+};
+
+export const industryOptions: Industry[] = [
+  "뷰티",
+  "푸드",
+  "생활",
+  "패션",
+  "디지털",
+  "육아",
+  "반려",
+  "건강",
+  "여행",
+  "교육",
+  "문화",
+  "로컬서비스"
+];
+
+export const productCategoryOptions = ["스킨케어", "식품", "생활용품", "패션잡화", "가전/디지털", "도서/교육", "반려용품"] as const;
+export const localCategoryOptions = ["맛집", "카페", "뷰티샵", "피트니스", "클래스", "숙박", "전시/공연", "체험공간"] as const;
 
 export const applicationStatusLabels: Record<ApplicationStatus, string> = {
   applied: "신청 검토 중",

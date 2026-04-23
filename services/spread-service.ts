@@ -4,6 +4,7 @@ import {
   currentAdmin,
   currentMember,
   campaigns,
+  fulfillmentInfos,
   getCampaignViews,
   getSubmissionViews,
   userPenalties,
@@ -14,6 +15,7 @@ import type {
   ApplicationStatus,
   CampaignApplicationView,
   CampaignStatus,
+  FulfillmentInfo,
   SubmissionStatus,
   UserPenalty
 } from "@/types/spread";
@@ -66,7 +68,7 @@ export async function listCampaignApplications(campaignId: string): Promise<Camp
       const user = users.find((item) => item.id === application.userId)!;
       const userSubmissions = getSubmissionViews().filter((submission) => submission.userId === user.id);
       const approved = userSubmissions.filter((submission) =>
-        ["auto_approved", "approved", "reward_pending", "paid"].includes(submission.status)
+        ["auto_approved", "approved", "fulfillment_pending", "completed"].includes(submission.status)
       ).length;
 
       return {
@@ -78,9 +80,24 @@ export async function listCampaignApplications(campaignId: string): Promise<Camp
           (channel) => channel.userId === user.id && channel.channelType === application.channelType
         ),
         approvalRate: userSubmissions.length ? Math.round((approved / userSubmissions.length) * 100) : 0,
-        activePenalty: getActivePenalty(user.id)
+        activePenalty: getActivePenalty(user.id),
+        fulfillment: fulfillmentInfos.find((info) => info.applicationId === application.id)
       };
     });
+}
+
+export async function listBrandCampaigns(brandId = "brand-1") {
+  return getCampaignViews().filter((campaign) => campaign.brandId === brandId);
+}
+
+export async function listBrandCampaignApplications(campaignId: string, brandId = "brand-1") {
+  const campaign = campaigns.find((item) => item.id === campaignId && item.brandId === brandId);
+  if (!campaign) return [];
+  return listCampaignApplications(campaignId);
+}
+
+export function getFulfillmentForApplication(applicationId: string): FulfillmentInfo | undefined {
+  return fulfillmentInfos.find((info) => info.applicationId === applicationId);
 }
 
 export async function getCampaignApplicationSummary(campaignId: string) {
@@ -102,7 +119,7 @@ export async function getMemberProfile() {
   const submissions = await listMemberSubmissions(currentMember.id);
   const applications = await listMemberApplications(currentMember.id);
   const approved = submissions.filter((submission) =>
-    ["auto_approved", "approved", "reward_pending", "paid"].includes(submission.status)
+    ["auto_approved", "approved", "fulfillment_pending", "completed"].includes(submission.status)
   ).length;
 
   return {
@@ -125,16 +142,14 @@ export async function getAdminSummary() {
   const submissions = getSubmissionViews();
   const todaySubmissions = submissions.filter((submission) => submission.submittedAt.startsWith("2026-04-22")).length;
   const approved = submissions.filter((submission) =>
-    ["auto_approved", "approved", "reward_pending", "paid"].includes(submission.status)
+    ["auto_approved", "approved", "fulfillment_pending", "completed"].includes(submission.status)
   ).length;
-  const rewardPending = submissions.reduce((sum, submission) => sum + (submission.reward?.totalReward ?? 0), 0);
 
   return {
     admin: currentAdmin,
     activeCampaigns: campaigns.filter((campaign) => campaign.status === "open").length,
     todaySubmissions,
     approvalRate: Math.round((approved / submissions.length) * 100),
-    rewardPending,
     autoApproved: submissions.filter((submission) => submission.status === "auto_approved").length,
     needsReview: submissions.filter((submission) => submission.status === "needs_review").length,
     applicationPending: campaignApplications.filter((application) => application.status === "applied").length,

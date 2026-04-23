@@ -11,13 +11,29 @@ export type SubmissionStatus =
   | "auto_rejected"
   | "approved"
   | "rejected"
-  | "reward_pending"
-  | "paid"
+  | "fulfillment_pending"
+  | "completed"
   | "revoked";
-export type RewardStatus = "pending" | "approved" | "paid" | "cancelled";
 export type EntityStatus = "active" | "inactive" | "blocked" | "pending";
 export type ApplicationStatus = "applied" | "selected" | "rejected" | "cancelled";
 export type VerificationStatus = "pending" | "verified" | "rejected";
+export type ExperienceType = "product" | "local";
+export type Industry =
+  | "뷰티"
+  | "푸드"
+  | "생활"
+  | "패션"
+  | "디지털"
+  | "육아"
+  | "반려"
+  | "건강"
+  | "여행"
+  | "교육"
+  | "문화"
+  | "로컬서비스";
+export type ProductCategory = "스킨케어" | "식품" | "생활용품" | "패션잡화" | "가전/디지털" | "도서/교육" | "반려용품";
+export type LocalCategory = "맛집" | "카페" | "뷰티샵" | "피트니스" | "클래스" | "숙박" | "전시/공연" | "체험공간";
+export type CampaignCategory = ProductCategory | LocalCategory;
 
 export type User = {
   id: string;
@@ -29,7 +45,7 @@ export type User = {
   bio: string;
   level: number;
   score: number;
-  totalEarnings: number;
+  completedMissions: number;
   status: EntityStatus;
   createdAt: string;
   updatedAt: string;
@@ -74,13 +90,22 @@ export type Campaign = {
   description: string;
   coverImageUrl?: string;
   productName: string;
+  experienceType: ExperienceType;
+  industry: Industry;
+  category: CampaignCategory;
+  offerTitle: string;
+  offerDescription: string;
+  offerValueLabel: string;
+  regionProvince?: string;
+  regionDistrict?: string;
+  venueAddress?: string;
+  venueName?: string;
+  privacyRetentionDays: number;
   startAt: string;
   endAt: string;
   applyEndAt: string;
   submissionDueAt: string;
   recruitLimit: number;
-  baseReward: number;
-  bonusRewardMax: number;
   status: CampaignStatus;
   reviewMode: ReviewMode;
   visibility: "public" | "private";
@@ -125,10 +150,43 @@ export type CampaignApplication = {
   channelType: ChannelType;
   message: string;
   status: ApplicationStatus;
+  applicationPrivacyAgreed: boolean;
+  applicationPrivacyAgreedAt?: string;
   appliedAt: string;
   decidedAt?: string;
   decidedBy?: string;
   adminNote?: string;
+};
+
+export type ProductFulfillmentInfo = {
+  recipientName: string;
+  phone: string;
+  postalCode: string;
+  address: string;
+  addressDetail: string;
+  deliveryMemo?: string;
+};
+
+export type LocalFulfillmentInfo = {
+  visitorName: string;
+  phone: string;
+  preferredVisitAt: string;
+  companionCount: number;
+  requestNote?: string;
+};
+
+export type FulfillmentInfo = {
+  id: string;
+  campaignId: string;
+  applicationId: string;
+  userId: string;
+  type: ExperienceType;
+  productInfo?: ProductFulfillmentInfo;
+  localInfo?: LocalFulfillmentInfo;
+  privacyAgreed: boolean;
+  privacyAgreedAt?: string;
+  retentionUntil: string;
+  createdAt: string;
 };
 
 export type Submission = {
@@ -179,20 +237,6 @@ export type SubmissionMetrics = {
   capturedAt: string;
 };
 
-export type Reward = {
-  id: string;
-  submissionId: string;
-  userId: string;
-  campaignId: string;
-  baseReward: number;
-  bonusReward: number;
-  totalReward: number;
-  status: RewardStatus;
-  decidedAt?: string;
-  paidAt?: string;
-  createdAt: string;
-};
-
 export type AutoCheckIssue = {
   code: string;
   label: string;
@@ -227,7 +271,6 @@ export type SubmissionView = Submission & {
   campaign: Campaign;
   brand: Brand;
   user: User;
-  reward?: Reward;
   metrics?: SubmissionMetrics;
   penalty?: UserPenalty;
 };
@@ -239,6 +282,7 @@ export type CampaignApplicationView = CampaignApplication & {
   channel?: UserChannel;
   approvalRate: number;
   activePenalty?: UserPenalty;
+  fulfillment?: FulfillmentInfo;
 };
 
 export type SubmissionEligibility = {

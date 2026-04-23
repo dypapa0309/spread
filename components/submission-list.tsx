@@ -1,6 +1,6 @@
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { channelLabels, formatLabels, money, shortDate, submissionStatusLabels } from "@/lib/labels";
+import { channelLabels, formatLabels, shortDate, submissionStatusLabels } from "@/lib/labels";
 import type { SubmissionView } from "@/types/spread";
 
 export function SubmissionList({ submissions, admin = false }: { submissions: SubmissionView[]; admin?: boolean }) {
@@ -30,7 +30,7 @@ export function SubmissionList({ submissions, admin = false }: { submissions: Su
             <Badge>{channelLabels[submission.channelType]}</Badge>
             <Badge>{formatLabels[submission.formatType]}</Badge>
             <Badge>점수 {submission.autoCheckScore}</Badge>
-            <Badge>{submission.reward ? money(submission.reward.totalReward) : "보상 미정"}</Badge>
+            <Badge>{submission.campaign.offerValueLabel}</Badge>
             {submission.penalty ? <Badge active>{submission.penalty.suspensionDays}일 제한</Badge> : null}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-spread-ink/65">

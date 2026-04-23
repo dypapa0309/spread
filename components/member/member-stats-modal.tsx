@@ -4,7 +4,6 @@ import { useState } from "react";
 import { AlertCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { money } from "@/lib/labels";
 import type { User } from "@/types/spread";
 
 export function MemberStatsModal({ user }: { user: User }) {
@@ -39,7 +38,7 @@ export function MemberStatsModal({ user }: { user: User }) {
             </div>
             <div className="mt-6 grid gap-3">
               <StatRow label="내 등급" value={`Lv.${user.level}`} caption="빠른 반응 기여자" />
-              <StatRow label="누적 수익" value={money(user.totalEarnings)} caption="확정 지급 기준" />
+              <StatRow label="완료 미션" value={`${user.completedMissions}건`} caption="체험 완료 기준" />
               <StatRow label="누적 점수" value={`${user.score}점`} caption="승인/성과 반영" />
             </div>
             <Button className="mt-6 w-full" onClick={() => setOpen(false)}>

@@ -5,12 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea } from "@/components/ui/field";
-import { channelLabels, shortDate } from "@/lib/labels";
+import { PrivacyConsent } from "@/components/privacy-consent";
+import { channelLabels, experienceTypeLabels, shortDate } from "@/lib/labels";
 import type { CampaignView, ChannelType, UserPenalty } from "@/types/spread";
 
 export function ApplicationForm({ campaign, activePenalty }: { campaign: CampaignView; activePenalty?: UserPenalty }) {
   const [channel, setChannel] = useState<ChannelType>(campaign.channels[0]);
   const [message, setMessage] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   if (activePenalty) {
@@ -48,9 +50,13 @@ export function ApplicationForm({ campaign, activePenalty }: { campaign: Campaig
           className="mt-6 grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
-            setSubmitted(true);
+            if (agreed) setSubmitted(true);
           }}
         >
+          <div className="flex flex-wrap gap-2">
+            <Badge active>{experienceTypeLabels[campaign.experienceType]}</Badge>
+            <Badge>{campaign.offerValueLabel}</Badge>
+          </div>
           <Field label="사용할 채널">
             <Select value={channel} onChange={(event) => setChannel(event.target.value as ChannelType)}>
               {campaign.channels.map((item) => (
@@ -65,7 +71,8 @@ export function ApplicationForm({ campaign, activePenalty }: { campaign: Campaig
               placeholder="어떤 반응을 만들 수 있는지 짧게 적어주세요."
             />
           </Field>
-          <Button type="submit">신청하기</Button>
+          <PrivacyConsent checked={agreed} onChange={setAgreed} variant="application" />
+          <Button type="submit" disabled={!agreed}>신청하기</Button>
         </form>
       </Card>
       <Card className="self-start">

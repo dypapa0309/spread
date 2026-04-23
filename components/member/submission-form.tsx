@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { channelLabels, formatLabels, shortDate, submissionStatusLabels } from "@/lib/labels";
+import { PrivacyConsent } from "@/components/privacy-consent";
+import { channelLabels, experienceTypeLabels, formatLabels, shortDate, submissionStatusLabels } from "@/lib/labels";
 import { calculateDeadlinePenalty, determineSubmissionStatus, runSubmissionAutoCheck } from "@/services/submission-auto-check";
 import type { CampaignView, ChannelType, FormatType, SubmissionEligibility, SubmissionStatus } from "@/types/spread";
 
@@ -16,6 +17,7 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
   const [postText, setPostText] = useState("");
   const [screenshotUrl, setScreenshotUrl] = useState("");
   const [postedAt, setPostedAt] = useState("");
+  const [fulfillmentAgreed, setFulfillmentAgreed] = useState(false);
   const [result, setResult] = useState<{ score: number; status: SubmissionStatus; labels: string[] } | null>(null);
 
   const check = useMemo(
@@ -49,10 +51,36 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
           className="mt-6 grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
+            if (!fulfillmentAgreed) return;
             const status = determineSubmissionStatus(check, campaign);
             setResult({ score: check.score, status, labels: check.issues.map((issue) => `${issue.label}: ${issue.severity}`) });
           }}
         >
+          <div className="rounded-spread border border-spread-ink/10 p-4">
+            <div className="mb-4 flex flex-wrap gap-2">
+              <Badge active>{experienceTypeLabels[campaign.experienceType]}</Badge>
+              <Badge>{campaign.offerValueLabel}</Badge>
+            </div>
+            {campaign.experienceType === "product" ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="수령인"><Input placeholder="이름" /></Field>
+                <Field label="휴대폰"><Input placeholder="010-0000-0000" /></Field>
+                <Field label="우편번호"><Input placeholder="00000" /></Field>
+                <Field label="주소"><Input placeholder="도로명 주소" /></Field>
+                <Field label="상세주소"><Input placeholder="동/호수" /></Field>
+                <Field label="배송 메모"><Input placeholder="문 앞 / 경비실 등" /></Field>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="방문자명"><Input placeholder="이름" /></Field>
+                <Field label="휴대폰"><Input placeholder="010-0000-0000" /></Field>
+                <Field label="방문 희망일/시간"><Input type="datetime-local" /></Field>
+                <Field label="동반 인원"><Input type="number" placeholder="0" /></Field>
+                <Field label="요청사항"><Input placeholder="방문 가능 시간, 알레르기 등" /></Field>
+              </div>
+            )}
+          </div>
+          <PrivacyConsent checked={fulfillmentAgreed} onChange={setFulfillmentAgreed} variant="fulfillment" />
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="채널">
               <Select value={channel} onChange={(event) => setChannel(event.target.value as ChannelType)}>
@@ -79,7 +107,7 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
               <Input type="datetime-local" value={postedAt} onChange={(event) => setPostedAt(event.target.value)} />
             </Field>
           </div>
-          <Button type="submit">자동 체크 후 제출</Button>
+          <Button type="submit" disabled={!fulfillmentAgreed}>자동 체크 후 제출</Button>
         </form>
       </Card>
       <div className="grid gap-4 self-start">
@@ -94,7 +122,7 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
             ))}
           </div>
           <p className="mt-4 text-sm leading-6 text-spread-ink/65">
-            일부 채널은 자동 승인되지 않고 운영자 검수로 넘어갑니다. 게시물은 최소 유지 시간 이후 보상이 확정됩니다.
+            일부 채널은 자동 승인되지 않고 운영자 검수로 넘어갑니다. 게시물은 최소 유지 시간 이후 체험 완료 처리됩니다.
           </p>
           {deadlinePenalty.daysLate > 0 ? (
             <p className="mt-3 rounded-2xl border border-spread-point bg-spread-point/10 p-3 text-sm font-semibold text-spread-point">

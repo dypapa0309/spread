@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Badge } from "@/components/ui/badge";
 import { getApplicationCta } from "@/services/spread-service";
-import { channelLabels, formatLabels, formatTips, money, reviewModeLabels, shortDate } from "@/lib/labels";
+import { channelLabels, experienceTypeLabels, formatLabels, formatTips, reviewModeLabels, shortDate } from "@/lib/labels";
 import type { CampaignView, FormatType, UserPenalty } from "@/types/spread";
 
 export function CampaignDetail({ campaign, activePenalty }: { campaign: CampaignView; activePenalty?: UserPenalty }) {
@@ -28,6 +28,9 @@ export function CampaignDetail({ campaign, activePenalty }: { campaign: Campaign
             aria-label={`${campaign.title} 대표 이미지`}
           />
           <div className="flex flex-wrap gap-2">
+            <Badge active>{experienceTypeLabels[campaign.experienceType]}</Badge>
+            <Badge>{campaign.industry}</Badge>
+            <Badge>{campaign.category}</Badge>
             {campaign.channels.map((channel) => <Badge key={channel}>{channelLabels[channel]}</Badge>)}
             <Badge active>{reviewModeLabels[campaign.reviewMode]}</Badge>
             <Badge>모집 {campaign.recruitLimit}명</Badge>
@@ -37,6 +40,20 @@ export function CampaignDetail({ campaign, activePenalty }: { campaign: Campaign
           <h1 className="mt-5 text-4xl font-black leading-tight">{campaign.title}</h1>
           <p className="mt-3 text-sm font-semibold text-spread-ink/60">{campaign.brand.name} · {campaign.productName}</p>
           <p className="mt-5 text-base leading-7 text-spread-ink/72">{campaign.description}</p>
+        </Card>
+        <Card>
+          <h2 className="text-xl font-black">{campaign.experienceType === "product" ? "제공 상품" : "체험 장소"}</h2>
+          <div className="mt-4 grid gap-3 text-sm">
+            <Row label={campaign.experienceType === "product" ? "상품" : "장소"} value={campaign.experienceType === "product" ? campaign.offerTitle : campaign.venueName ?? campaign.offerTitle} />
+            <Row label="제공 내용" value={campaign.offerDescription} />
+            <Row label="제공 방식" value={campaign.offerValueLabel} />
+            {campaign.experienceType === "local" ? (
+              <>
+                <Row label="지역" value={`${campaign.regionProvince ?? ""} ${campaign.regionDistrict ?? ""}`.trim()} />
+                <Row label="방문 주소" value={campaign.venueAddress ?? "선정 후 안내"} />
+              </>
+            ) : null}
+          </div>
         </Card>
         <Card>
           <h2 className="text-xl font-black">미션 포맷</h2>
@@ -64,10 +81,11 @@ export function CampaignDetail({ campaign, activePenalty }: { campaign: Campaign
       </div>
       <aside className="grid gap-4 self-start">
         <Card>
-          <h2 className="text-lg font-black">보상</h2>
+          <h2 className="text-lg font-black">운영 정보</h2>
           <div className="mt-4 grid gap-3">
-            <Row label="기본 보상" value={money(campaign.baseReward)} />
-            <Row label="최대 보너스" value={money(campaign.bonusRewardMax)} />
+            <Row label="모집" value={`${campaign.recruitLimit}명`} />
+            <Row label="지원" value={`${campaign.applicationsCount}명`} />
+            <Row label="선정" value={`${campaign.selectedCount}명`} />
             <Row label="신청 마감" value={shortDate(campaign.applyEndAt)} />
             <Row label="제출 마감" value={shortDate(campaign.submissionDueAt)} />
             <Row label="유지 시간" value={`${campaign.guideline.minLiveHours}시간`} />

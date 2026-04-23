@@ -3,10 +3,10 @@ create type channel_type as enum ('threads', 'x', 'wordpress', 'kakao');
 create type format_type as enum ('one_line', 'story', 'comparison', 'question', 'recommendation', 'debate');
 create type campaign_status as enum ('draft', 'open', 'closed', 'paused', 'completed');
 create type review_mode as enum ('manual', 'semi_auto', 'auto');
-create type submission_status as enum ('submitted', 'processing', 'needs_review', 'auto_approved', 'auto_rejected', 'approved', 'rejected', 'reward_pending', 'paid', 'revoked');
-create type reward_status as enum ('pending', 'approved', 'paid', 'cancelled');
+create type submission_status as enum ('submitted', 'processing', 'needs_review', 'auto_approved', 'auto_rejected', 'approved', 'rejected', 'fulfillment_pending', 'completed', 'revoked');
 create type application_status as enum ('applied', 'selected', 'rejected', 'cancelled');
 create type verification_status as enum ('pending', 'verified', 'rejected');
+create type experience_type as enum ('product', 'local');
 
 create table public.users (
   id uuid primary key default gen_random_uuid(),
@@ -18,7 +18,7 @@ create table public.users (
   bio text default '',
   level int default 1,
   score int default 0,
-  total_earnings int default 0,
+  completed_missions int default 0,
   status text default 'active',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -63,13 +63,22 @@ create table public.campaigns (
   description text not null,
   cover_image_url text,
   product_name text not null,
+  experience_type experience_type not null default 'product',
+  industry text not null default '생활',
+  category text not null default '생활용품',
+  offer_title text not null default '',
+  offer_description text not null default '',
+  offer_value_label text not null default '제품 제공',
+  region_province text,
+  region_district text,
+  venue_address text,
+  venue_name text,
+  privacy_retention_days int default 30,
   start_at timestamptz,
   end_at timestamptz,
   apply_end_at timestamptz,
   submission_due_at timestamptz,
   recruit_limit int,
-  base_reward int default 0,
-  bonus_reward_max int default 0,
   status campaign_status default 'draft',
   review_mode review_mode default 'semi_auto',
   visibility text default 'public',
@@ -114,10 +123,26 @@ create table public.campaign_applications (
   channel_type channel_type not null,
   message text default '',
   status application_status default 'applied',
+  application_privacy_agreed boolean default false,
+  application_privacy_agreed_at timestamptz,
   applied_at timestamptz default now(),
   decided_at timestamptz,
   decided_by uuid references public.users(id),
   admin_note text
+);
+
+create table public.fulfillment_infos (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid references public.campaigns(id) on delete cascade,
+  application_id uuid references public.campaign_applications(id) on delete cascade,
+  user_id uuid references public.users(id) on delete cascade,
+  type experience_type not null,
+  product_info jsonb,
+  local_info jsonb,
+  privacy_agreed boolean default false,
+  privacy_agreed_at timestamptz,
+  retention_until timestamptz not null,
+  created_at timestamptz default now()
 );
 
 create table public.submissions (
@@ -166,18 +191,4 @@ create table public.submission_metrics (
   engagement_score int default 0,
   conversion_count int default 0,
   captured_at timestamptz default now()
-);
-
-create table public.rewards (
-  id uuid primary key default gen_random_uuid(),
-  submission_id uuid references public.submissions(id),
-  user_id uuid references public.users(id),
-  campaign_id uuid references public.campaigns(id),
-  base_reward int default 0,
-  bonus_reward int default 0,
-  total_reward int default 0,
-  status reward_status default 'pending',
-  decided_at timestamptz,
-  paid_at timestamptz,
-  created_at timestamptz default now()
 );

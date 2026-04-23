@@ -17,7 +17,12 @@ export default async function CampaignsPage({
     format: params.format,
     status: params.status as never
   });
-  const sorted = params.sort === "reward" ? [...campaigns].sort((a, b) => b.baseReward - a.baseReward) : campaigns;
+  const sorted =
+    params.sort === "applications"
+      ? [...campaigns].sort((a, b) => b.applicationsCount - a.applicationsCount)
+      : params.sort === "deadline"
+        ? [...campaigns].sort((a, b) => new Date(a.applyEndAt).getTime() - new Date(b.applyEndAt).getTime())
+        : campaigns;
 
   return (
     <AppShell role="member">
@@ -58,8 +63,9 @@ export default async function CampaignsPage({
             </Field>
             <Field label="정렬">
               <Select name="sort" defaultValue={params.sort ?? "latest"}>
-                <option value="latest">기본</option>
-                <option value="reward">보상순</option>
+                <option value="latest">최신순</option>
+                <option value="deadline">마감순</option>
+                <option value="applications">지원 많은순</option>
               </Select>
             </Field>
             <button className="min-h-12 rounded-2xl bg-spread-point px-4 text-sm font-bold text-white md:col-span-5">필터 적용</button>

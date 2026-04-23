@@ -5,7 +5,7 @@ import type {
   CampaignChannel,
   CampaignFormat,
   CampaignGuideline,
-  Reward,
+  FulfillmentInfo,
   Submission,
   SubmissionMetrics,
   User,
@@ -26,10 +26,10 @@ export type Database = {
       campaign_formats: { Row: CampaignFormat; Insert: Partial<CampaignFormat>; Update: Partial<CampaignFormat> };
       campaign_guidelines: { Row: CampaignGuideline; Insert: Partial<CampaignGuideline>; Update: Partial<CampaignGuideline> };
       campaign_applications: { Row: CampaignApplication; Insert: Partial<CampaignApplication>; Update: Partial<CampaignApplication> };
+      fulfillment_infos: { Row: FulfillmentInfo; Insert: Partial<FulfillmentInfo>; Update: Partial<FulfillmentInfo> };
       submissions: { Row: Submission; Insert: Partial<Submission>; Update: Partial<Submission> };
       submission_metrics: { Row: SubmissionMetrics; Insert: Partial<SubmissionMetrics>; Update: Partial<SubmissionMetrics> };
       user_penalties: { Row: UserPenalty; Insert: Partial<UserPenalty>; Update: Partial<UserPenalty> };
-      rewards: { Row: Reward; Insert: Partial<Reward>; Update: Partial<Reward> };
     };
   };
 };

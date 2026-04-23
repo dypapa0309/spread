@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
-import { channelLabels, formatLabels } from "@/lib/labels";
-import type { ChannelType, FormatType } from "@/types/spread";
+import { channelLabels, formatLabels, industryOptions, localCategoryOptions, productCategoryOptions } from "@/lib/labels";
+import type { ChannelType, ExperienceType, FormatType } from "@/types/spread";
 
 const channels: ChannelType[] = ["threads", "x", "wordpress", "kakao"];
 const formats: FormatType[] = ["one_line", "story", "comparison", "question", "recommendation", "debate"];
@@ -16,6 +16,7 @@ const formats: FormatType[] = ["one_line", "story", "comparison", "question", "r
 export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
   const [selectedChannels, setSelectedChannels] = useState<ChannelType[]>(["threads"]);
   const [selectedFormats, setSelectedFormats] = useState<FormatType[]>(["one_line"]);
+  const [experienceType, setExperienceType] = useState<ExperienceType>("product");
   const [coverImageUrl, setCoverImageUrl] = useState(
     mode === "edit"
       ? "https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=1200&auto=format&fit=crop"
@@ -61,10 +62,47 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="캠페인명"><Input defaultValue={mode === "edit" ? "Threads 한줄 반응 실험" : ""} placeholder="미션 이름" /></Field>
-              <Field label="제품명"><Input placeholder="제품/서비스" /></Field>
+              <Field label="제품/서비스명"><Input placeholder="제품 또는 체험 서비스" /></Field>
             </div>
             <Field label="요약"><Input placeholder="카드에 보일 짧은 설명" /></Field>
             <Field label="설명"><Textarea placeholder="미션 목적과 기대 반응" /></Field>
+          </FormSection>
+          <FormSection title="체험상품">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="캠페인 타입">
+                <Select value={experienceType} onChange={(event) => setExperienceType(event.target.value as ExperienceType)}>
+                  <option value="product">제품 배송형</option>
+                  <option value="local">지역 방문형</option>
+                </Select>
+              </Field>
+              <Field label="업종">
+                <Select defaultValue="푸드">
+                  {industryOptions.map((industry) => <option key={industry} value={industry}>{industry}</option>)}
+                </Select>
+              </Field>
+              <Field label="카테고리">
+                <Select defaultValue={experienceType === "product" ? "식품" : "카페"}>
+                  {(experienceType === "product" ? productCategoryOptions : localCategoryOptions).map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
+            {experienceType === "product" ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="상품명"><Input placeholder="샘플팩 / 이용권 / 키트" /></Field>
+                <Field label="제공 방식"><Input placeholder="제품 배송" /></Field>
+                <Field label="제공 구성"><Textarea placeholder="선정자에게 제공되는 제품 구성과 배송 안내" /></Field>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="시/도"><Input placeholder="서울" /></Field>
+                <Field label="시군구"><Input placeholder="성동구" /></Field>
+                <Field label="장소명"><Input placeholder="브랜드 쇼룸" /></Field>
+                <Field label="방문 주소"><Input placeholder="도로명 주소" /></Field>
+                <Field label="운영/예약 안내"><Textarea placeholder="방문 가능 시간, 예약 방식, 주의사항" /></Field>
+              </div>
+            )}
           </FormSection>
           <FormSection title="채널 선택">
             <div className="flex flex-wrap gap-2">
@@ -92,11 +130,10 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
               <Field label="금지 표현"><Textarea placeholder="무조건 최고, 100% 보장" /></Field>
             </div>
           </FormSection>
-          <FormSection title="보상 정책">
-            <div className="grid gap-4 sm:grid-cols-3">
+          <FormSection title="모집 정책">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="모집 수"><Input type="number" placeholder="80" /></Field>
-              <Field label="기본 보상"><Input type="number" placeholder="12000" /></Field>
-              <Field label="최대 보너스"><Input type="number" placeholder="18000" /></Field>
+              <Field label="개인정보 보유일"><Input type="number" placeholder="30" /></Field>
             </div>
           </FormSection>
           <FormSection title="검수 정책">

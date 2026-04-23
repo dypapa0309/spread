@@ -4,7 +4,7 @@ import { MetricCard } from "@/components/metric-card";
 import { SubmissionList } from "@/components/submission-list";
 import { Badge } from "@/components/ui/badge";
 import { Card, Section } from "@/components/ui/card";
-import { channelLabels, money, shortDate, verificationStatusLabels } from "@/lib/labels";
+import { channelLabels, shortDate, verificationStatusLabels } from "@/lib/labels";
 import { getMemberProfile, listMemberSubmissions } from "@/services/spread-service";
 
 export default async function ProfilePage() {
@@ -32,7 +32,7 @@ export default async function ProfilePage() {
           </Card>
         ) : null}
         <div className="grid gap-3 sm:grid-cols-3">
-          <MetricCard label="총 수익" value={money(user.totalEarnings)} />
+          <MetricCard label="완료 미션" value={`${user.completedMissions}건`} />
           <MetricCard label="승인률" value={`${stats.approvalRate}%`} />
           <MetricCard label="신청/제출" value={`${stats.totalApplications}/${stats.totalSubmissions}`} />
         </div>
@@ -66,7 +66,7 @@ export default async function ProfilePage() {
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-2xl font-black">최근 제출</h2>
-              <p className="mt-1 text-sm text-spread-ink/60">마이에서 내 기록과 보상 상태를 확인합니다.</p>
+              <p className="mt-1 text-sm text-spread-ink/60">마이에서 내 기록과 처리 상태를 확인합니다.</p>
             </div>
           </div>
           <SubmissionList submissions={submissions.slice(0, 5)} />
