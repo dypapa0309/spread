@@ -121,15 +121,7 @@ function SignupForm() {
   }
 
   if (done) {
-    return (
-      <Card className="max-w-md mx-auto text-center">
-        <h2 className="text-2xl font-black">이메일을 확인해 주세요</h2>
-        <p className="mt-4 text-sm leading-7 text-spread-ink/65">
-          <strong>{email}</strong>으로 인증 링크를 보냈습니다.<br />
-          링크를 클릭하면 가입이 완료됩니다.
-        </p>
-      </Card>
-    );
+    return <EmailConfirmCard email={email} type="member" />;
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -235,16 +227,7 @@ function BrandSignupForm() {
   }
 
   if (done) {
-    return (
-      <Card className="max-w-lg mx-auto text-center">
-        <h2 className="text-2xl font-black">신청이 접수되었습니다</h2>
-        <p className="mt-4 text-sm leading-7 text-spread-ink/65">
-          담당자가 사업자 정보를 확인한 후 <strong>{email}</strong>으로 승인 안내를 드립니다.<br />
-          영업일 기준 1~3일 내에 연락드립니다.
-        </p>
-        <p className="mt-4 text-xs text-spread-ink/50">문의: dypapa0309@gmail.com</p>
-      </Card>
-    );
+    return <EmailConfirmCard email={email} type="brand" />;
   }
 
   function formatBusinessNumber(value: string) {
@@ -429,5 +412,79 @@ function BrandSignupForm() {
         관리자 검토 후 승인됩니다. 영업일 1~3일 소요됩니다.
       </p>
     </form>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 이메일 인증 안내 (공통)
+// ─────────────────────────────────────────────
+function EmailConfirmCard({ email, type }: { email: string; type: "member" | "brand" }) {
+  const [resent, setResent] = useState(false);
+  const [resending, setResending] = useState(false);
+
+  async function handleResend() {
+    setResending(true);
+    try {
+      const { createClient } = await import("@/supabase/client");
+      const supabase = createClient();
+      await supabase.auth.resend({ type: "signup", email });
+      setResent(true);
+    } finally {
+      setResending(false);
+    }
+  }
+
+  return (
+    <Card className="mx-auto max-w-lg">
+      <div className="flex flex-col items-center gap-4 py-4 text-center">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-spread-point/10 text-3xl">
+          ✉️
+        </div>
+        <div>
+          <h2 className="text-2xl font-black">인증 이메일을 보냈습니다</h2>
+          <p className="mt-2 text-sm text-spread-ink/60">
+            <strong className="text-spread-ink">{email}</strong>으로 발송했습니다
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3">
+        {[
+          "받은 편지함에서 SPREAD 인증 메일을 확인하세요",
+          "메일 안의 '이메일 인증하기' 링크를 클릭하세요",
+          type === "brand"
+            ? "인증 완료 후 관리자가 사업자 정보를 검토합니다 (영업일 1~3일)"
+            : "인증이 완료되면 자동으로 로그인됩니다"
+        ].map((step, i) => (
+          <div key={i} className="flex items-start gap-3 rounded-2xl border border-spread-ink/10 px-4 py-3 text-sm">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-spread-point text-xs font-black text-white">
+              {i + 1}
+            </span>
+            <span className="leading-5">{step}</span>
+          </div>
+        ))}
+      </div>
+
+      {type === "brand" && (
+        <p className="mt-4 rounded-2xl border border-spread-ink/10 px-4 py-3 text-xs text-spread-ink/60">
+          승인 완료 시 <strong>{email}</strong>으로 안내 메일이 발송됩니다. 문의: dypapa0309@gmail.com
+        </p>
+      )}
+
+      <div className="mt-5 border-t border-spread-ink/10 pt-5">
+        <p className="text-center text-xs text-spread-ink/50">메일이 오지 않았나요? 스팸 폴더를 확인하거나 재발송해 주세요.</p>
+        {resent ? (
+          <p className="mt-3 text-center text-sm font-semibold text-spread-point">재발송했습니다. 잠시 후 확인해 주세요.</p>
+        ) : (
+          <button
+            onClick={handleResend}
+            disabled={resending}
+            className="mt-3 w-full rounded-2xl border border-spread-ink/15 py-3 text-sm font-semibold text-spread-ink/70 hover:bg-spread-ink/5 disabled:opacity-50"
+          >
+            {resending ? "발송 중..." : "인증 메일 재발송"}
+          </button>
+        )}
+      </div>
+    </Card>
   );
 }
