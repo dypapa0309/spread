@@ -19,15 +19,12 @@ export default function LandingPage() {
             <LinkButton href="/login">
               시작하기 <ArrowRight size={18} />
             </LinkButton>
-            <LinkButton href="/admin" variant="outline">
-              운영 화면 보기
-            </LinkButton>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           {[
             ["자동 필터링", "URL, 키워드, 금지 표현, 중복을 먼저 걸러요.", Gauge],
-            ["반자동 검수", "애매한 제출물만 운영자가 판단합니다.", Sparkles],
+            ["반자동 검수", "애매한 제출만 따로 확인합니다.", Sparkles],
             ["체험 완료", "6개월 유지 조건과 상태를 보고 처리를 완료합니다.", ArrowRight]
           ].map(([title, body, Icon]) => (
             <Card key={String(title)}>

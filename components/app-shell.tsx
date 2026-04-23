@@ -56,8 +56,32 @@ export function AppShell({ children, role = "member" }: { children: ReactNode; r
       </header>
       {children}
       {role === "public" ? (
-        <footer className="mx-auto flex w-full max-w-6xl justify-end px-4 pb-6 text-xs text-spread-ink/45 sm:px-6">
-          <Link href="/admin">운영자</Link>
+        <footer className="mx-auto grid w-full max-w-6xl gap-6 border-t border-spread-ink/10 px-4 py-8 text-xs text-spread-ink/55 sm:px-6">
+          <div className="grid gap-5 md:grid-cols-[1fr_1.2fr_0.8fr]">
+            <div>
+              <p className="text-sm font-black text-spread-ink">SPREAD</p>
+              <p className="mt-2 leading-5">반응을 퍼뜨리고 전환을 만드는 미션 플랫폼</p>
+            </div>
+            <div className="grid gap-1 leading-5">
+              <p>상호명: 주식회사 스프레드</p>
+              <p>대표: 홍길동 · 사업자등록번호: 000-00-00000</p>
+              <p>통신판매업신고번호: 제0000-서울강남-0000호</p>
+              <p>주소: 서울특별시 강남구 테헤란로 000</p>
+              <p>개인정보보호책임자: privacy@spread.local</p>
+            </div>
+            <div className="grid content-start gap-2 md:text-right">
+              <Link href="/login" className="font-semibold text-spread-ink">사용자/광고주 로그인</Link>
+              <a href="mailto:hello@spread.local">hello@spread.local</a>
+              <div className="flex flex-wrap gap-3 md:justify-end">
+                <a href="#">이용약관</a>
+                <a href="#">개인정보처리방침</a>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-spread-ink/10 pt-4">
+            <span>© SPREAD. All rights reserved.</span>
+            <Link href="/admin" className="text-spread-ink/35">운영자</Link>
+          </div>
         </footer>
       ) : null}
     </div>
