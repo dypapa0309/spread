@@ -3,12 +3,16 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getSupabaseEnv, hasSupabaseEnv } from "@/supabase/env";
 
 export async function logout() {
+  if (!hasSupabaseEnv()) redirect("/login");
+
   const cookieStore = await cookies();
+  const { url, anonKey } = getSupabaseEnv();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() { return cookieStore.getAll(); },

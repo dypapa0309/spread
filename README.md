@@ -78,11 +78,13 @@ types/
 `.env.example`을 `.env.local`로 복사한 뒤 실제 프로젝트 값을 채웁니다.
 
 ```bash
-NEXT_PUBLIC_APP_MODE=mock
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ```
+
+- `NEXT_PUBLIC_SUPABASE_URL`과 `NEXT_PUBLIC_SUPABASE_ANON_KEY`가 둘 다 있을 때만 Supabase live mode로 동작합니다. 하나라도 비어 있으면 mock mode로 안전하게 렌더링합니다.
+- `SUPABASE_SERVICE_ROLE_KEY`는 서버 전용 비밀키입니다. 노출되면 즉시 Supabase에서 회전/재발급하고 Netlify 환경변수도 교체해야 합니다.
 
 - `supabase/client.ts`: 클라이언트 컴포넌트용 browser client
 - `supabase/server.ts`: 서버 컴포넌트/서버 액션용 server client

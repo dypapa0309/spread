@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getSupabaseEnv, hasSupabaseEnv } from "@/supabase/env";
 
 const PROTECTED = ["/member", "/admin", "/brand"];
 
@@ -11,15 +12,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
   // mock 모드: 인증 없이 통과
-  if (!url || !key) return NextResponse.next();
+  if (!hasSupabaseEnv()) return NextResponse.next();
+
+  const { url, anonKey } = getSupabaseEnv();
 
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(url, key, {
+  const supabase = createServerClient(url, anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

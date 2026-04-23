@@ -6,8 +6,9 @@ import { AppShell } from "@/components/app-shell";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { hasSupabaseEnv } from "@/supabase/env";
 
-const isMock = !process.env.NEXT_PUBLIC_SUPABASE_URL;
+const isMock = !hasSupabaseEnv();
 
 function useCooldown(seconds = 60) {
   const [remaining, setRemaining] = useState(0);

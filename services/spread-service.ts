@@ -1,5 +1,6 @@
 import * as mock from "@/lib/mock-data";
 import * as real from "@/services/supabase-service";
+import { hasSupabaseEnv } from "@/supabase/env";
 import type {
   ApplicationStatus,
   CampaignApplicationView,
@@ -17,7 +18,7 @@ import type {
 } from "@/types/spread";
 
 // Supabase 환경 변수가 있으면 real 모드, 없으면 mock 모드
-const isLive = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const isLive = hasSupabaseEnv();
 
 // ────────────────────────────────────────────────────────────────────────────
 // Current user

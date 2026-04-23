@@ -1,14 +1,10 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getSupabaseEnv } from "@/supabase/env";
 
 export async function createClient() {
   const cookieStore = await cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error("Supabase env vars are missing. Mock services are active until real mode is configured.");
-  }
+  const { url, anonKey } = getSupabaseEnv();
 
   return createServerClient(url, anonKey, {
     cookies: {

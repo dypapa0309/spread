@@ -1,22 +1,9 @@
-import { redirect } from "next/navigation";
 import { ArrowRight, Gauge, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { LinkButton } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
 
 export default async function LandingPage() {
-  // 로그인된 사용자는 역할에 맞는 홈으로 리다이렉트
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    const { createClient } = await import("@/supabase/server");
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await supabase.from("users").select("role").eq("id", user.id).single();
-      const role = data?.role ?? "member";
-      redirect(role === "admin" ? "/admin" : role === "brand" ? "/brand" : "/member");
-    }
-  }
-
   return (
     <AppShell role="public">
       <Section className="grid min-h-[calc(100vh-64px)] content-center gap-8 py-12">

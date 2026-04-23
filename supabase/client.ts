@@ -1,12 +1,8 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { getSupabaseEnv } from "@/supabase/env";
 
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error("Supabase env vars are missing. Use NEXT_PUBLIC_APP_MODE=mock for local mock mode.");
-  }
+  const { url, anonKey } = getSupabaseEnv();
 
   return createBrowserClient(url, anonKey);
 }
