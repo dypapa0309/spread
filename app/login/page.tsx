@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Button, LinkButton } from "@/components/ui/button";
@@ -8,6 +8,24 @@ import { Card, Section } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 
 const isMock = !process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+function useCooldown(seconds = 60) {
+  const [remaining, setRemaining] = useState(0);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function start() {
+    setRemaining(seconds);
+    timer.current = setInterval(() => {
+      setRemaining((prev) => {
+        if (prev <= 1) { clearInterval(timer.current!); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  useEffect(() => () => { if (timer.current) clearInterval(timer.current); }, []);
+  return { remaining, start, active: remaining > 0 };
+}
 
 function translateAuthError(message: string): string {
   if (message.includes("rate limit")) return "잠시 후 다시 시도해 주세요. (이메일 발송 횟수 초과)";
@@ -142,6 +160,7 @@ function MemberSignupForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const cooldown = useCooldown(60);
 
   if (isMock) {
     return (
@@ -171,7 +190,12 @@ function MemberSignupForm() {
           data: { name, nickname, role: "member", channel_type: channelType, channel_handle: channelHandle, channel_name: channelHandle, channel_url: channelUrl || null, follower_count: isKakao ? 0 : Number(followerCount) || 0, friend_count: isKakao ? Number(friendCount) || 0 : null }
         }
       });
-      if (signUpError) { setError(translateAuthError(signUpError.message)); setLoading(false); return; }
+      if (signUpError) {
+        const msg = translateAuthError(signUpError.message);
+        setError(msg);
+        if (signUpError.message.includes("rate limit")) cooldown.start();
+        setLoading(false); return;
+      }
       if (data.session) {
         await supabase.from("users").upsert({ id: data.user!.id, role: "member", name, nickname, email, bio: "", level: 1, score: 0, completed_missions: 0, status: "active" });
         if (channelHandle) {
@@ -214,7 +238,9 @@ function MemberSignupForm() {
               ? <Input type="number" value={friendCount} onChange={(e) => setFriendCount(e.target.value)} placeholder="1000" />
               : <Input type="number" value={followerCount} onChange={(e) => setFollowerCount(e.target.value)} placeholder="3000" />}
           </Field>
-          <Button type="submit" form="member-signup" disabled={loading}>{loading ? "가입 중..." : "가입하기"}</Button>
+          <Button type="submit" form="member-signup" disabled={loading || cooldown.active}>
+            {loading ? "가입 중..." : cooldown.active ? `잠시 후 다시 시도해 주세요 (${cooldown.remaining}초)` : "가입하기"}
+          </Button>
         </div>
       </Card>
     </div>
@@ -313,6 +339,7 @@ function BrandSignupForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const cooldown = useCooldown(60);
 
   if (isMock) {
     return (
@@ -363,7 +390,12 @@ function BrandSignupForm() {
           data: { role: "brand", brand_name: brandName, contact_name: contactName, nickname: brandName, name: contactName }
         }
       });
-      if (authError) { setError(translateAuthError(authError.message)); setLoading(false); return; }
+      if (authError) {
+        const msg = translateAuthError(authError.message);
+        setError(msg);
+        if (authError.message.includes("rate limit")) cooldown.start();
+        setLoading(false); return;
+      }
 
       const userId = authData.user?.id;
       if (!userId) { setError("계정 생성에 실패했습니다."); setLoading(false); return; }
@@ -435,7 +467,9 @@ function BrandSignupForm() {
         )}
       </Card>
       {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-      <Button type="submit" disabled={loading}>{loading ? "신청 중..." : "광고주 가입 신청"}</Button>
+      <Button type="submit" disabled={loading || cooldown.active}>
+        {loading ? "신청 중..." : cooldown.active ? `잠시 후 다시 시도해 주세요 (${cooldown.remaining}초)` : "광고주 가입 신청"}
+      </Button>
       <p className="text-center text-xs text-spread-ink/50">관리자 검토 후 승인됩니다. 영업일 1~3일 소요됩니다.</p>
     </form>
   );
@@ -447,6 +481,7 @@ function BrandSignupForm() {
 function EmailConfirmCard({ email, type }: { email: string; type: "member" | "brand" }) {
   const [resent, setResent] = useState(false);
   const [resending, setResending] = useState(false);
+  const cooldown = useCooldown(30);
 
   async function handleResend() {
     setResending(true);
@@ -455,6 +490,7 @@ function EmailConfirmCard({ email, type }: { email: string; type: "member" | "br
       const supabase = createClient();
       await supabase.auth.resend({ type: "signup", email });
       setResent(true);
+      cooldown.start();
     } finally { setResending(false); }
   }
 
@@ -489,8 +525,8 @@ function EmailConfirmCard({ email, type }: { email: string; type: "member" | "br
         {resent ? (
           <p className="mt-3 text-center text-sm font-semibold text-spread-point">재발송했습니다. 잠시 후 확인해 주세요.</p>
         ) : (
-          <button onClick={handleResend} disabled={resending} className="mt-3 w-full rounded-2xl border border-spread-ink/15 py-3 text-sm font-semibold text-spread-ink/70 hover:bg-spread-ink/5 disabled:opacity-50">
-            {resending ? "발송 중..." : "인증 메일 재발송"}
+          <button onClick={handleResend} disabled={resending || cooldown.active} className="mt-3 w-full rounded-2xl border border-spread-ink/15 py-3 text-sm font-semibold text-spread-ink/70 hover:bg-spread-ink/5 disabled:opacity-50">
+            {resending ? "발송 중..." : cooldown.active ? `재발송 대기 (${cooldown.remaining}초)` : "인증 메일 재발송"}
           </button>
         )}
       </div>
