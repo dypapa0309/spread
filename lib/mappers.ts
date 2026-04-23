@@ -69,6 +69,9 @@ export function mapBrand(row: BrandRow): Brand {
     logoUrl: row.logo_url ?? undefined,
     contactName: row.contact_name,
     contactEmail: row.contact_email,
+    plan: row.plan ?? "basic",
+    planStartedAt: row.plan_started_at ?? undefined,
+    planRenewsAt: row.plan_renews_at ?? undefined,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at

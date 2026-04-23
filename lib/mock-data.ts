@@ -115,9 +115,9 @@ export const userChannels: UserChannel[] = [
 ];
 
 export const brands: Brand[] = [
-  { id: "brand-1", name: "Nova Desk", description: "작은 팀을 위한 업무 집중 도구", websiteUrl: "https://nova.example.com", contactName: "강민재", contactEmail: "brand@nova.example.com", status: "active", createdAt: now, updatedAt: now },
-  { id: "brand-2", name: "Mellow Bean", description: "로컬 로스터리 기반 커피 구독", websiteUrl: "https://mellow.example.com", contactName: "서윤아", contactEmail: "hello@mellow.example.com", status: "active", createdAt: now, updatedAt: now },
-  { id: "brand-3", name: "FitLoop", description: "습관형 운동 기록 앱", websiteUrl: "https://fitloop.example.com", contactName: "최라온", contactEmail: "growth@fitloop.example.com", status: "active", createdAt: now, updatedAt: now }
+  { id: "brand-1", name: "Nova Desk", description: "작은 팀을 위한 업무 집중 도구", websiteUrl: "https://nova.example.com", contactName: "강민재", contactEmail: "brand@nova.example.com", plan: "basic", planStartedAt: now, status: "active", createdAt: now, updatedAt: now },
+  { id: "brand-2", name: "Mellow Bean", description: "로컬 로스터리 기반 커피 구독", websiteUrl: "https://mellow.example.com", contactName: "서윤아", contactEmail: "hello@mellow.example.com", plan: "standard", planStartedAt: now, status: "active", createdAt: now, updatedAt: now },
+  { id: "brand-3", name: "FitLoop", description: "습관형 운동 기록 앱", websiteUrl: "https://fitloop.example.com", contactName: "최라온", contactEmail: "growth@fitloop.example.com", plan: "pro", planStartedAt: now, status: "active", createdAt: now, updatedAt: now }
 ];
 
 export const campaigns: Campaign[] = [

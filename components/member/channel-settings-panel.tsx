@@ -1,17 +1,68 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/field";
+import type { ChannelType, UserChannel } from "@/types/spread";
 
-export function ChannelSettingsPanel() {
+export function ChannelSettingsPanel({ channels = [] }: { channels?: UserChannel[] }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [channelType, setChannelType] = useState<ChannelType>("threads");
+  const current = channels.find((channel) => channel.channelType === channelType);
+  const [handle, setHandle] = useState("");
+  const [channelUrl, setChannelUrl] = useState("");
+  const [followerCount, setFollowerCount] = useState("");
+  const [friendCount, setFriendCount] = useState("");
+  const [verificationScreenshotUrl, setVerificationScreenshotUrl] = useState("");
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function hydrate(nextChannelType: ChannelType) {
+    const next = channels.find((channel) => channel.channelType === nextChannelType);
+    setChannelType(nextChannelType);
+    setHandle(next?.handle ?? "");
+    setChannelUrl(next?.channelUrl ?? "");
+    setFollowerCount(next?.followerCount ? String(next.followerCount) : "");
+    setFriendCount(next?.friendCount ? String(next.friendCount) : "");
+    setVerificationScreenshotUrl(next?.verificationScreenshotUrl ?? "");
+    setMessage("");
+  }
+
+  async function saveChannel() {
+    setSaving(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/user-channels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channelType,
+          handle,
+          channelUrl,
+          followerCount: Number(followerCount) || 0,
+          friendCount: Number(friendCount) || 0,
+          verificationScreenshotUrl
+        })
+      });
+      const result = (await response.json()) as { ok?: boolean; message?: string };
+      setMessage(result.message ?? (result.ok ? "저장되었습니다." : "저장에 실패했습니다."));
+      if (response.ok && result.ok) {
+        router.refresh();
+      }
+    } catch {
+      setMessage("채널 저장 중 오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
+      <Button variant="outline" onClick={() => { hydrate(channelType); setOpen(true); }}>
         <Settings size={18} />
         설정
       </Button>
@@ -35,7 +86,7 @@ export function ChannelSettingsPanel() {
             <div className="mt-6 grid gap-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="채널">
-                  <Select defaultValue="threads">
+                  <Select value={channelType} onChange={(event) => hydrate(event.target.value as ChannelType)}>
                     <option value="threads">Threads</option>
                     <option value="x">X</option>
                     <option value="wordpress">WordPress</option>
@@ -43,21 +94,34 @@ export function ChannelSettingsPanel() {
                   </Select>
                 </Field>
                 <Field label="닉네임/핸들">
-                  <Input placeholder="@spread_sia 또는 카카오 닉네임" />
+                  <Input value={handle} onChange={(event) => setHandle(event.target.value)} placeholder="@spread_sia 또는 카카오 닉네임" />
                 </Field>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="채널 링크">
-                  <Input placeholder="KakaoTalk은 비워둘 수 있습니다." />
+                  <Input value={channelUrl} onChange={(event) => setChannelUrl(event.target.value)} placeholder="KakaoTalk은 비워둘 수 있습니다." disabled={channelType === "kakao"} />
                 </Field>
-                <Field label="팔로워/친구수">
-                  <Input type="number" placeholder="900" />
+                <Field label={channelType === "kakao" ? "친구수" : "팔로워수"}>
+                  <Input
+                    type="number"
+                    value={channelType === "kakao" ? friendCount : followerCount}
+                    onChange={(event) => channelType === "kakao" ? setFriendCount(event.target.value) : setFollowerCount(event.target.value)}
+                    placeholder="900"
+                  />
                 </Field>
               </div>
               <Field label="인증 캡처 URL" hint="KakaoTalk은 내 아이디/닉네임과 친구수가 보이는 캡처가 필수입니다.">
-                <Input placeholder="/storage/channel-verifications/profile.png" />
+                <Input value={verificationScreenshotUrl} onChange={(event) => setVerificationScreenshotUrl(event.target.value)} placeholder="/storage/channel-verifications/profile.png" />
               </Field>
-              <Button onClick={() => setOpen(false)}>저장</Button>
+              {current ? (
+                <p className="rounded-2xl border border-spread-ink/10 px-4 py-3 text-xs text-spread-ink/60">
+                  기존 {current.handle} 정보를 수정합니다.
+                </p>
+              ) : null}
+              {message ? (
+                <p className="rounded-2xl border border-spread-point/30 bg-spread-point/10 px-4 py-3 text-sm font-semibold text-spread-point">{message}</p>
+              ) : null}
+              <Button onClick={saveChannel} disabled={saving}>{saving ? "저장 중..." : "저장"}</Button>
             </div>
           </Card>
         </div>

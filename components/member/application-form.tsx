@@ -1,19 +1,34 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Select, Textarea } from "@/components/ui/field";
+import { Field, Textarea } from "@/components/ui/field";
 import { PrivacyConsent } from "@/components/privacy-consent";
 import { channelLabels, experienceTypeLabels, shortDate } from "@/lib/labels";
-import type { CampaignView, ChannelType, UserPenalty } from "@/types/spread";
+import { getChannelMissingFields } from "@/services/channel-validation";
+import type { CampaignView, UserChannel, UserPenalty } from "@/types/spread";
 
-export function ApplicationForm({ campaign, activePenalty }: { campaign: CampaignView; activePenalty?: UserPenalty }) {
-  const [channel, setChannel] = useState<ChannelType>(campaign.channels[0]);
+export function ApplicationForm({ campaign, activePenalty, userChannels = [] }: { campaign: CampaignView; activePenalty?: UserPenalty; userChannels?: UserChannel[] }) {
+  const router = useRouter();
   const [message, setMessage] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const channelState = campaign.channels.map((channelType) => {
+    const channel = userChannels.find((item) => item.channelType === channelType && item.isActive);
+    return {
+      channelType,
+      channel,
+      missingFields: getChannelMissingFields(channelType, channel)
+    };
+  });
+  const missingChannels = channelState.filter((item) => item.missingFields.length > 0);
+  const canApply = agreed && missingChannels.length === 0 && !saving;
 
   if (activePenalty) {
     return (
@@ -48,22 +63,61 @@ export function ApplicationForm({ campaign, activePenalty }: { campaign: Campaig
         <p className="mt-2 text-sm text-spread-ink/65">{campaign.title}</p>
         <form
           className="mt-6 grid gap-4"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
-            if (agreed) setSubmitted(true);
+            if (!canApply) return;
+            setSaving(true);
+            setStatusMessage("");
+            try {
+              const response = await fetch("/api/applications", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  campaignId: campaign.id,
+                  message,
+                  applicationPrivacyAgreed: agreed
+                })
+              });
+              const result = (await response.json()) as { ok?: boolean; message?: string };
+              if (!response.ok || !result.ok) {
+                setStatusMessage(result.message ?? "신청 저장에 실패했습니다.");
+                return;
+              }
+              setSubmitted(true);
+              router.refresh();
+            } catch {
+              setStatusMessage("신청 중 오류가 발생했습니다.");
+            } finally {
+              setSaving(false);
+            }
           }}
         >
           <div className="flex flex-wrap gap-2">
             <Badge active>{experienceTypeLabels[campaign.experienceType]}</Badge>
             <Badge>{campaign.offerValueLabel}</Badge>
           </div>
-          <Field label="사용할 채널">
-            <Select value={channel} onChange={(event) => setChannel(event.target.value as ChannelType)}>
-              {campaign.channels.map((item) => (
-                <option key={item} value={item}>{channelLabels[item]}</option>
+          <div className="rounded-spread border border-spread-ink/10 p-4">
+            <h2 className="text-lg font-black">필수 채널</h2>
+            <p className="mt-1 text-sm text-spread-ink/60">이 캠페인은 아래 채널 전체에 콘텐츠를 발행해야 합니다.</p>
+            <div className="mt-4 grid gap-2">
+              {channelState.map((item) => (
+                <div key={item.channelType} className="rounded-2xl border border-spread-ink/10 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-black">{channelLabels[item.channelType]}</p>
+                    <Badge active={!item.missingFields.length}>{item.missingFields.length ? "정보 부족" : "등록 완료"}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm text-spread-ink/60">
+                    {item.missingFields.length
+                      ? `필요: ${item.missingFields.join(", ")}`
+                      : `${item.channel?.handle} · ${(item.channel?.friendCount ?? item.channel?.followerCount ?? 0).toLocaleString()}명`}
+                  </p>
+                </div>
               ))}
-            </Select>
-          </Field>
+            </div>
+            {missingChannels.length ? (
+              <LinkButton href="/member/profile" variant="outline" className="mt-4 w-full">프로필에서 채널 등록하기</LinkButton>
+            ) : null}
+          </div>
           <Field label="한줄 신청 메모" hint="운영자가 선정할 때 보는 짧은 참여 의도입니다.">
             <Textarea
               value={message}
@@ -72,7 +126,10 @@ export function ApplicationForm({ campaign, activePenalty }: { campaign: Campaig
             />
           </Field>
           <PrivacyConsent checked={agreed} onChange={setAgreed} variant="application" />
-          <Button type="submit" disabled={!agreed}>신청하기</Button>
+          {statusMessage ? (
+            <p className="rounded-2xl border border-spread-point/30 bg-spread-point/10 px-4 py-3 text-sm font-semibold text-spread-point">{statusMessage}</p>
+          ) : null}
+          <Button type="submit" disabled={!canApply}>{saving ? "신청 중..." : "신청하기"}</Button>
         </form>
       </Card>
       <Card className="self-start">

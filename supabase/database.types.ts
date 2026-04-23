@@ -41,6 +41,9 @@ export type BrandRow = {
   logo_url: string | null;
   contact_name: string;
   contact_email: string;
+  plan?: "basic" | "standard" | "pro";
+  plan_started_at?: string | null;
+  plan_renews_at?: string | null;
   status: "active" | "inactive" | "blocked" | "pending";
   created_at: string;
   updated_at: string;

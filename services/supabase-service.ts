@@ -13,6 +13,7 @@ import {
 } from "@/lib/mappers";
 import type {
   ApplicationStatus,
+  BrandPlan,
   CampaignApplicationView,
   CampaignDraftPreset,
   CampaignStatus,
@@ -39,6 +40,24 @@ function groupBy<T>(arr: T[], key: keyof T): Record<string, T[]> {
     acc[k].push(item);
     return acc;
   }, {});
+}
+
+const PLAN_LIMITS: Record<BrandPlan, { activeCampaignLimit: number; monthlySelectedLimit: number; label: string; priceLabel: string }> = {
+  basic: { activeCampaignLimit: 2, monthlySelectedLimit: 20, label: "Basic", priceLabel: "무료" },
+  standard: { activeCampaignLimit: 5, monthlySelectedLimit: 80, label: "Standard", priceLabel: "월 29,000원" },
+  pro: { activeCampaignLimit: 15, monthlySelectedLimit: 250, label: "Pro", priceLabel: "월 99,000원" }
+};
+
+function uniqueCount<T>(items: T[], getKey: (item: T) => string) {
+  return new Set(items.map(getKey)).size;
+}
+
+function resolveGroupedApplicationStatus(statuses: ApplicationStatus[]): ApplicationStatus | undefined {
+  if (!statuses.length) return undefined;
+  if (statuses.includes("selected")) return "selected";
+  if (statuses.every((status) => status === "rejected")) return "rejected";
+  if (statuses.every((status) => status === "cancelled")) return "cancelled";
+  return "applied";
 }
 
 const emptyGuideline = {
@@ -123,7 +142,7 @@ async function buildCampaignViews(
   const ids = rows.map((r) => r.id);
 
   const [{ data: appData }, { data: subData }, { data: myApps }] = await Promise.all([
-    supabase.from("campaign_applications").select("campaign_id, status").in("campaign_id", ids),
+    supabase.from("campaign_applications").select("campaign_id, user_id, status").in("campaign_id", ids),
     supabase.from("submissions").select("campaign_id").in("campaign_id", ids),
     userId
       ? supabase
@@ -136,9 +155,7 @@ async function buildCampaignViews(
 
   const appsByCampaign = groupBy(appData ?? [], "campaign_id");
   const subsByCampaign = groupBy(subData ?? [], "campaign_id");
-  const myAppMap = Object.fromEntries(
-    (myApps ?? []).map((a) => [a.campaign_id, a.status as ApplicationStatus])
-  );
+  const myAppsByCampaign = groupBy(myApps ?? [], "campaign_id");
 
   return rows.map((row) => {
     const apps = appsByCampaign[row.id] ?? [];
@@ -153,10 +170,12 @@ async function buildCampaignViews(
       channels: row.campaign_channels.map((c) => c.channel_type as ChannelType),
       formats: row.campaign_formats.map((f) => f.format_type as never),
       guideline,
-      applicationsCount: apps.length,
-      selectedCount: apps.filter((a) => a.status === "selected").length,
+      applicationsCount: uniqueCount(apps, (a) => a.user_id),
+      selectedCount: uniqueCount(apps.filter((a) => a.status === "selected"), (a) => a.user_id),
       submissionsCount: subs.length,
-      myApplicationStatus: myAppMap[row.id]
+      myApplicationStatus: resolveGroupedApplicationStatus(
+        (myAppsByCampaign[row.id] ?? []).map((a) => a.status as ApplicationStatus)
+      )
     };
   });
 }
@@ -261,6 +280,17 @@ export async function listMemberApplications(userId: string) {
   return (data ?? []).map(mapApplication);
 }
 
+export async function listUserChannels(userId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("user_channels")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+
+  return (data ?? []).map(mapUserChannel);
+}
+
 export async function getActivePenalty(userId: string): Promise<UserPenalty | undefined> {
   const supabase = await createClient();
   const now = new Date().toISOString();
@@ -330,23 +360,25 @@ export async function checkSubmissionEligibility(
     };
   }
 
-  const { data: application } = await supabase
+  const { data: applications } = await supabase
     .from("campaign_applications")
     .select("status")
     .eq("campaign_id", campaignId)
-    .eq("user_id", userId)
-    .single();
+    .eq("user_id", userId);
 
-  if (!application) {
+  const statuses = (applications ?? []).map((application) => application.status as ApplicationStatus);
+  const groupedStatus = resolveGroupedApplicationStatus(statuses);
+
+  if (!groupedStatus) {
     return { canSubmit: false, reason: "not_applied", message: "먼저 캠페인에 신청해야 합니다." };
   }
-  if (application.status === "applied") {
+  if (groupedStatus === "applied") {
     return { canSubmit: false, reason: "pending", message: "관리자 선정이 끝난 뒤 제출할 수 있습니다." };
   }
-  if (application.status === "rejected") {
+  if (groupedStatus === "rejected") {
     return { canSubmit: false, reason: "rejected", message: "이번 캠페인에는 선정되지 않았습니다." };
   }
-  if (application.status === "cancelled") {
+  if (groupedStatus === "cancelled") {
     return { canSubmit: false, reason: "not_applied", message: "취소된 신청입니다. 다시 신청해 주세요." };
   }
 
@@ -357,13 +389,15 @@ export async function checkSubmissionEligibility(
 // Brand
 // ────────────────────────────────────────────────────────────────────────────
 
-export async function listBrandCampaigns(brandId: string): Promise<CampaignView[]> {
+export async function listBrandCampaigns(brandId?: string): Promise<CampaignView[]> {
   const supabase = await createClient();
+  const resolvedBrandId = brandId ?? await getCurrentUserBrandId();
+  if (!resolvedBrandId) return [];
 
   const { data } = await supabase
     .from("campaigns")
     .select(CAMPAIGN_SELECT)
-    .eq("brand_id", brandId)
+    .eq("brand_id", resolvedBrandId)
     .order("created_at", { ascending: false });
 
   if (!data) return [];
@@ -380,19 +414,71 @@ export async function getBrandIdForUser(userId: string): Promise<string | null> 
   return data?.id ?? null;
 }
 
-export async function getBrandCampaignLimitState(brandId: string) {
-  const campaigns = await listBrandCampaigns(brandId);
+export async function getCurrentUserBrandId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  return getBrandIdForUser(user.id);
+}
+
+export async function getBrandCampaignLimitState(brandId?: string) {
+  const supabase = await createClient();
+  const resolvedBrandId = brandId ?? await getCurrentUserBrandId();
+  if (!resolvedBrandId) {
+    return {
+      activeCount: 0,
+      selectedThisMonth: 0,
+      plan: "basic" as BrandPlan,
+      planLabel: PLAN_LIMITS.basic.label,
+      priceLabel: PLAN_LIMITS.basic.priceLabel,
+      limit: PLAN_LIMITS.basic.activeCampaignLimit,
+      monthlySelectedLimit: PLAN_LIMITS.basic.monthlySelectedLimit,
+      canCreate: false,
+      canSelectMore: false,
+      message: "브랜드 정보를 찾을 수 없습니다."
+    };
+  }
+
+  const { data: brandRow } = await supabase
+    .from("brands")
+    .select("*")
+    .eq("id", resolvedBrandId)
+    .maybeSingle();
+  const plan = (brandRow?.plan ?? "basic") as BrandPlan;
+  const limits = PLAN_LIMITS[plan] ?? PLAN_LIMITS.basic;
+  const campaigns = await listBrandCampaigns(resolvedBrandId);
   const activeStatuses: CampaignStatus[] = ["draft", "open", "paused"];
   const activeCount = campaigns.filter((c) => activeStatuses.includes(c.status)).length;
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const { data: selectedRows } = await supabase
+    .from("campaign_applications")
+    .select("campaign_id, user_id, campaign:campaigns!campaign_id(brand_id)")
+    .eq("status", "selected")
+    .gte("decided_at", monthStart.toISOString());
+  const selectedThisMonth = uniqueCount(
+    (selectedRows ?? []).filter((row: Record<string, unknown>) => {
+      const campaign = row.campaign as { brand_id?: string } | null;
+      return campaign?.brand_id === resolvedBrandId;
+    }),
+    (row: Record<string, unknown>) => `${row.campaign_id}:${row.user_id}`
+  );
 
   return {
     activeCount,
-    limit: 2,
-    canCreate: activeCount < 2,
+    selectedThisMonth,
+    plan,
+    planLabel: limits.label,
+    priceLabel: limits.priceLabel,
+    limit: limits.activeCampaignLimit,
+    monthlySelectedLimit: limits.monthlySelectedLimit,
+    canCreate: activeCount < limits.activeCampaignLimit,
+    canSelectMore: selectedThisMonth < limits.monthlySelectedLimit,
     message:
-      activeCount < 2
-        ? `동시 진행 캠페인 ${activeCount}/2개`
-        : "동시 진행 캠페인은 최대 2개까지 등록할 수 있습니다."
+      activeCount < limits.activeCampaignLimit
+        ? `${limits.label} · 동시 진행 ${activeCount}/${limits.activeCampaignLimit}개 · 월 선정 ${selectedThisMonth}/${limits.monthlySelectedLimit}명`
+        : `${limits.label} 플랜은 동시 진행 캠페인 ${limits.activeCampaignLimit}개까지 등록할 수 있습니다.`
   };
 }
 
@@ -439,7 +525,7 @@ export async function listCampaignApplications(campaignId: string): Promise<Camp
 
   const { data: appRows } = await supabase
     .from("campaign_applications")
-    .select("*, user:users(*), channel:user_channels(*), fulfillment:fulfillment_infos(*)")
+    .select("*, user:users(*)")
     .eq("campaign_id", campaignId)
     .order("applied_at", { ascending: false });
 
@@ -455,24 +541,46 @@ export async function listCampaignApplications(campaignId: string): Promise<Camp
 
   const campaign = mapCampaign(campaignRow as never);
   const brand = mapBrand((campaignRow as Record<string, unknown>).brand as never);
+  const typedRows = appRows as Record<string, unknown>[];
+  const userIds = [...new Set(typedRows.map((row) => String(row.user_id)))];
+  const [{ data: channelRows }, { data: fulfillmentRows }] = await Promise.all([
+    userIds.length
+      ? supabase.from("user_channels").select("*").in("user_id", userIds)
+      : Promise.resolve({ data: [] }),
+    supabase.from("fulfillment_infos").select("*").eq("campaign_id", campaignId)
+  ]);
+  const channelsByUser = groupBy((channelRows ?? []).map(mapUserChannel), "userId");
+  const fulfillmentsByUser = groupBy((fulfillmentRows ?? []).map(mapFulfillment), "userId");
+  const rowsByUser = groupBy(typedRows, "user_id");
 
   return Promise.all(
-    appRows.map(async (row: Record<string, unknown>) => {
+    Object.values(rowsByUser).map(async (group) => {
+      const row = group[0];
       const user = mapUser((row.user as Record<string, unknown>) as never);
       const userSubmissions = await listMemberSubmissions(user.id);
       const approved = userSubmissions.filter((s) =>
         ["auto_approved", "approved", "fulfillment_pending", "completed"].includes(s.status)
       ).length;
+      const userChannels = channelsByUser[user.id] ?? [];
+      const channelTypes = group.map((item) => item.channel_type as ChannelType);
+      const applicationIds = group.map((item) => String(item.id));
+      const groupedStatus = resolveGroupedApplicationStatus(
+        group.map((item) => item.status as ApplicationStatus)
+      ) ?? "applied";
 
       return {
         ...mapApplication(row as never),
+        status: groupedStatus,
         campaign,
         brand,
         user,
-        channel: row.channel ? mapUserChannel((row.channel as Record<string, unknown>) as never) : undefined,
+        channel: userChannels.find((channel) => channel.channelType === row.channel_type),
+        channels: userChannels.filter((channel) => channelTypes.includes(channel.channelType)),
+        channelTypes,
+        applicationIds,
         approvalRate: userSubmissions.length ? Math.round((approved / userSubmissions.length) * 100) : 0,
         activePenalty: await getActivePenalty(user.id),
-        fulfillment: row.fulfillment ? mapFulfillment((row.fulfillment as Record<string, unknown>) as never) : undefined
+        fulfillment: (fulfillmentsByUser[user.id] ?? [])[0]
       };
     })
   );

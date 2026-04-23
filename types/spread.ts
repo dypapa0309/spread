@@ -18,6 +18,7 @@ export type EntityStatus = "active" | "inactive" | "blocked" | "pending";
 export type ApplicationStatus = "applied" | "selected" | "rejected" | "cancelled";
 export type VerificationStatus = "pending" | "verified" | "rejected";
 export type ExperienceType = "product" | "local";
+export type BrandPlan = "basic" | "standard" | "pro";
 export type Industry =
   | "뷰티"
   | "푸드"
@@ -76,6 +77,9 @@ export type Brand = {
   logoUrl?: string;
   contactName: string;
   contactEmail: string;
+  plan: BrandPlan;
+  planStartedAt?: string;
+  planRenewsAt?: string;
   status: EntityStatus;
   createdAt: string;
   updatedAt: string;
@@ -280,6 +284,9 @@ export type CampaignApplicationView = CampaignApplication & {
   brand: Brand;
   user: User;
   channel?: UserChannel;
+  channels?: UserChannel[];
+  channelTypes?: ChannelType[];
+  applicationIds?: string[];
   approvalRate: number;
   activePenalty?: UserPenalty;
   fulfillment?: FulfillmentInfo;

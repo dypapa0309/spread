@@ -12,26 +12,49 @@ import { getSubmissionChecklist } from "@/lib/client-helpers";
 import type { CampaignView, ChannelType, FormatType, SubmissionEligibility, SubmissionStatus } from "@/types/spread";
 
 export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignView; eligibility: SubmissionEligibility }) {
-  const [channel, setChannel] = useState<ChannelType>(campaign.channels[0]);
   const [format, setFormat] = useState<FormatType>(campaign.formats[0]);
-  const [postUrl, setPostUrl] = useState("");
-  const [postText, setPostText] = useState("");
-  const [screenshotUrl, setScreenshotUrl] = useState("");
-  const [postedAt, setPostedAt] = useState("");
+  const [channelInputs, setChannelInputs] = useState<Record<ChannelType, { postUrl: string; postText: string; screenshotUrl: string; postedAt: string }>>(
+    Object.fromEntries(campaign.channels.map((channelType) => [channelType, { postUrl: "", postText: "", screenshotUrl: "", postedAt: "" }])) as Record<ChannelType, { postUrl: string; postText: string; screenshotUrl: string; postedAt: string }>
+  );
   const [fulfillmentAgreed, setFulfillmentAgreed] = useState(false);
   const [checklistState, setChecklistState] = useState<Record<string, boolean>>({});
   const [result, setResult] = useState<{ score: number; status: SubmissionStatus; labels: string[] } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
-  const check = useMemo(
-    () => runSubmissionAutoCheck({ campaignId: campaign.id, channelType: channel, postUrl, postText, screenshotUrl }),
-    [campaign.id, channel, postUrl, postText, screenshotUrl]
+  const checks = useMemo(
+    () => campaign.channels.map((channelType) => {
+      const input = channelInputs[channelType] ?? { postUrl: "", postText: "", screenshotUrl: "", postedAt: "" };
+      return {
+        channelType,
+        result: runSubmissionAutoCheck({ campaignId: campaign.id, channelType, postUrl: input.postUrl, postText: input.postText, screenshotUrl: input.screenshotUrl })
+      };
+    }),
+    [campaign.channels, campaign.id, channelInputs]
   );
-  const deadlinePenalty = calculateDeadlinePenalty(campaign.submissionDueAt, postedAt ? new Date(postedAt) : undefined);
-  const checklist = getSubmissionChecklist(channel).map((item) => ({
-    ...item,
-    checked: Boolean(checklistState[item.id])
-  }));
+  const deadlinePenalty = calculateDeadlinePenalty(campaign.submissionDueAt);
+  const checklist = campaign.channels.flatMap((channelType) =>
+    getSubmissionChecklist(channelType).map((item) => ({
+      ...item,
+      id: `${channelType}-${item.id}`,
+      label: `${channelLabels[channelType]} · ${item.label}`,
+      checked: Boolean(checklistState[`${channelType}-${item.id}`])
+    }))
+  );
   const checklistComplete = checklist.every((item) => !item.required || item.checked);
+  const channelFormsComplete = campaign.channels.every((channelType) => {
+    const input = channelInputs[channelType];
+    if (!input?.postText.trim()) return false;
+    if (channelType === "kakao") return Boolean(input.screenshotUrl.trim());
+    return Boolean(input.postUrl.trim());
+  });
+
+  function updateChannelInput(channelType: ChannelType, key: "postUrl" | "postText" | "screenshotUrl" | "postedAt", value: string) {
+    setChannelInputs((prev) => ({
+      ...prev,
+      [channelType]: { ...(prev[channelType] ?? { postUrl: "", postText: "", screenshotUrl: "", postedAt: "" }), [key]: value }
+    }));
+  }
 
   if (!eligibility.canSubmit) {
     return (
@@ -56,12 +79,44 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
         <p className="mt-2 text-sm text-spread-ink/65">선정된 캠페인입니다. 제출 마감은 {shortDate(campaign.submissionDueAt)}입니다.</p>
         <form
           className="mt-6 grid gap-4"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
             if (!fulfillmentAgreed) return;
             if (!checklistComplete) return;
-            const status = determineSubmissionStatus(check, campaign);
-            setResult({ score: check.score, status, labels: check.issues.map((issue) => `${issue.label}: ${issue.severity}`) });
+            if (!channelFormsComplete) return;
+            setSaving(true);
+            setSaveMessage("");
+            try {
+              const response = await fetch("/api/submissions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  campaignId: campaign.id,
+                  formatType: format,
+                  submissions: campaign.channels.map((channelType) => ({
+                    channelType,
+                    ...channelInputs[channelType]
+                  }))
+                })
+              });
+              const responseResult = (await response.json()) as { ok?: boolean; message?: string };
+              if (!response.ok || !responseResult.ok) {
+                setSaveMessage(responseResult.message ?? "제출 저장에 실패했습니다.");
+                return;
+              }
+              const firstCheck = checks[0]?.result;
+              const status = firstCheck ? determineSubmissionStatus(firstCheck, campaign) : "needs_review";
+              setResult({
+                score: Math.round(checks.reduce((sum, item) => sum + item.result.score, 0) / Math.max(checks.length, 1)),
+                status,
+                labels: checks.flatMap((item) => item.result.issues.map((issue) => `${channelLabels[item.channelType]} ${issue.label}: ${issue.severity}`))
+              });
+              setSaveMessage(responseResult.message ?? "제출이 저장되었습니다.");
+            } catch {
+              setSaveMessage("제출 중 오류가 발생했습니다.");
+            } finally {
+              setSaving(false);
+            }
           }}
         >
           <div className="rounded-spread border border-spread-ink/10 p-4">
@@ -112,44 +167,52 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
           </div>
           <PrivacyConsent checked={fulfillmentAgreed} onChange={setFulfillmentAgreed} variant="fulfillment" />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="채널">
-              <Select value={channel} onChange={(event) => setChannel(event.target.value as ChannelType)}>
-                {campaign.channels.map((item) => <option key={item} value={item}>{channelLabels[item]}</option>)}
-              </Select>
-            </Field>
             <Field label="포맷">
               <Select value={format} onChange={(event) => setFormat(event.target.value as FormatType)}>
                 {campaign.formats.map((item) => <option key={item} value={item}>{formatLabels[item]}</option>)}
               </Select>
             </Field>
           </div>
-          <Field label="게시글 링크" hint="KakaoTalk 피드는 링크 없이 스크린샷 인증만으로도 제출할 수 있습니다.">
-            <Input value={postUrl} onChange={(event) => setPostUrl(event.target.value)} placeholder="https://..." />
-          </Field>
-          <Field label="작성 문구/텍스트">
-            <Textarea value={postText} onChange={(event) => setPostText(event.target.value)} placeholder="발행한 문구를 붙여넣으세요." />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="스크린샷 URL">
-              <Input value={screenshotUrl} onChange={(event) => setScreenshotUrl(event.target.value)} placeholder="/storage/proof.png" />
-            </Field>
-            <Field label="게시 시각">
-              <Input type="datetime-local" value={postedAt} onChange={(event) => setPostedAt(event.target.value)} />
-            </Field>
-          </div>
-          <Button type="submit" disabled={!fulfillmentAgreed || !checklistComplete}>자동 체크 후 제출</Button>
+          {campaign.channels.map((channelType) => {
+            const input = channelInputs[channelType] ?? { postUrl: "", postText: "", screenshotUrl: "", postedAt: "" };
+            return (
+              <div key={channelType} className="rounded-spread border border-spread-ink/10 p-4">
+                <h2 className="text-lg font-black">{channelLabels[channelType]} 제출</h2>
+                {channelType !== "kakao" ? (
+                  <Field label="게시글 링크">
+                    <Input value={input.postUrl} onChange={(event) => updateChannelInput(channelType, "postUrl", event.target.value)} placeholder="https://..." />
+                  </Field>
+                ) : null}
+                <Field label="작성 문구/텍스트">
+                  <Textarea value={input.postText} onChange={(event) => updateChannelInput(channelType, "postText", event.target.value)} placeholder="발행한 문구를 붙여넣으세요." />
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={channelType === "kakao" ? "KakaoTalk 피드 캡처 URL" : "스크린샷 URL"}>
+                    <Input value={input.screenshotUrl} onChange={(event) => updateChannelInput(channelType, "screenshotUrl", event.target.value)} placeholder="/storage/proof.png" />
+                  </Field>
+                  <Field label="게시 시각">
+                    <Input type="datetime-local" value={input.postedAt} onChange={(event) => updateChannelInput(channelType, "postedAt", event.target.value)} />
+                  </Field>
+                </div>
+              </div>
+            );
+          })}
+          {saveMessage ? (
+            <p className="rounded-2xl border border-spread-point/30 bg-spread-point/10 px-4 py-3 text-sm font-semibold text-spread-point">{saveMessage}</p>
+          ) : null}
+          <Button type="submit" disabled={!fulfillmentAgreed || !checklistComplete || !channelFormsComplete || saving}>{saving ? "제출 중..." : "자동 체크 후 제출"}</Button>
         </form>
       </Card>
       <div className="grid gap-4 self-start">
         <Card>
           <h2 className="text-xl font-black">자동 검수 미리보기</h2>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge active>점수 {check.score}</Badge>
-            {check.issues.map((issue) => (
-              <Badge key={issue.code} active={issue.severity === "pass"}>
-                {issue.label}
+            <Badge active>평균 점수 {Math.round(checks.reduce((sum, item) => sum + item.result.score, 0) / Math.max(checks.length, 1))}</Badge>
+            {checks.flatMap((item) => item.result.issues.map((issue) => (
+              <Badge key={`${item.channelType}-${issue.code}`} active={issue.severity === "pass"}>
+                {channelLabels[item.channelType]} {issue.label}
               </Badge>
-            ))}
+            )))}
           </div>
           <p className="mt-4 text-sm leading-6 text-spread-ink/65">
             일부 채널은 자동 승인되지 않고 운영자 검수로 넘어갑니다. 게시물은 6개월 유지 조건을 기준으로 체험 완료 처리됩니다.

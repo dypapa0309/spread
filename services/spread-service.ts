@@ -29,6 +29,11 @@ export async function getServerUser(): Promise<User | null> {
   return mock.currentMember;
 }
 
+export async function getBrandIdForUser(userId: string): Promise<string | null> {
+  if (isLive) return real.getBrandIdForUser(userId);
+  return userId === "user-brand-1" ? "brand-1" : "brand-1";
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Campaigns
 // ────────────────────────────────────────────────────────────────────────────
@@ -70,6 +75,11 @@ export async function listMemberSubmissions(userId = mock.currentMember.id): Pro
 export async function listMemberApplications(userId = mock.currentMember.id) {
   if (isLive) return real.listMemberApplications(userId);
   return mock.campaignApplications.filter((a) => a.userId === userId);
+}
+
+export async function listUserChannels(userId = mock.currentMember.id) {
+  if (isLive) return real.listUserChannels(userId);
+  return mock.userChannels.filter((channel) => channel.userId === userId);
 }
 
 export async function getActivePenalty(userId = mock.currentMember.id): Promise<UserPenalty | undefined> {
@@ -140,25 +150,38 @@ export async function checkSubmissionEligibility(
 // ────────────────────────────────────────────────────────────────────────────
 
 export async function listBrandCampaigns(brandId = "brand-1"): Promise<CampaignView[]> {
-  if (isLive) return real.listBrandCampaigns(brandId);
+  if (isLive) return real.listBrandCampaigns(brandId === "brand-1" ? undefined : brandId);
   return mock.getCampaignViews().filter((c) => c.brandId === brandId);
 }
 
 export async function getBrandCampaignLimitState(brandId = "brand-1") {
-  if (isLive) return real.getBrandCampaignLimitState(brandId);
+  if (isLive) return real.getBrandCampaignLimitState(brandId === "brand-1" ? undefined : brandId);
 
   const campaigns = await listBrandCampaigns(brandId);
   const activeStatuses: CampaignStatus[] = ["draft", "open", "paused"];
   const activeCount = campaigns.filter((c) => activeStatuses.includes(c.status)).length;
+  const plan = brandId === "brand-3" ? "pro" : brandId === "brand-2" ? "standard" : "basic";
+  const limits = {
+    basic: { activeCampaignLimit: 2, monthlySelectedLimit: 20, label: "Basic", priceLabel: "무료" },
+    standard: { activeCampaignLimit: 5, monthlySelectedLimit: 80, label: "Standard", priceLabel: "월 29,000원" },
+    pro: { activeCampaignLimit: 15, monthlySelectedLimit: 250, label: "Pro", priceLabel: "월 99,000원" }
+  }[plan];
+  const selectedThisMonth = campaigns.reduce((sum, campaign) => sum + campaign.selectedCount, 0);
 
   return {
     activeCount,
-    limit: 2,
-    canCreate: activeCount < 2,
+    selectedThisMonth,
+    plan,
+    planLabel: limits.label,
+    priceLabel: limits.priceLabel,
+    limit: limits.activeCampaignLimit,
+    monthlySelectedLimit: limits.monthlySelectedLimit,
+    canCreate: activeCount < limits.activeCampaignLimit,
+    canSelectMore: selectedThisMonth < limits.monthlySelectedLimit,
     message:
-      activeCount < 2
-        ? `동시 진행 캠페인 ${activeCount}/2개`
-        : "동시 진행 캠페인은 최대 2개까지 등록할 수 있습니다."
+      activeCount < limits.activeCampaignLimit
+        ? `${limits.label} · 동시 진행 ${activeCount}/${limits.activeCampaignLimit}개 · 월 선정 ${selectedThisMonth}/${limits.monthlySelectedLimit}명`
+        : `${limits.label} 플랜은 동시 진행 캠페인 ${limits.activeCampaignLimit}개까지 등록할 수 있습니다.`
   };
 }
 
@@ -222,7 +245,7 @@ export async function listCampaignApplications(campaignId: string): Promise<Camp
 }
 
 export async function listBrandCampaignApplications(campaignId: string, brandId = "brand-1") {
-  if (isLive) return real.listBrandCampaignApplications(campaignId, brandId);
+  if (isLive) return real.listBrandCampaignApplications(campaignId, brandId === "brand-1" ? await real.getCurrentUserBrandId() ?? "" : brandId);
   const campaign = mock.campaigns.find((c) => c.id === campaignId && c.brandId === brandId);
   if (!campaign) return [];
   return listCampaignApplications(campaignId);

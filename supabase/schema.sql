@@ -7,6 +7,7 @@ create type submission_status as enum ('submitted', 'processing', 'needs_review'
 create type application_status as enum ('applied', 'selected', 'rejected', 'cancelled');
 create type verification_status as enum ('pending', 'verified', 'rejected');
 create type experience_type as enum ('product', 'local');
+create type brand_plan as enum ('basic', 'standard', 'pro');
 
 create table public.users (
   id uuid primary key default gen_random_uuid(),
@@ -38,7 +39,8 @@ create table public.user_channels (
   verified_at timestamptz,
   is_verified boolean default false,
   is_active boolean default true,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  unique (user_id, channel_type)
 );
 
 create table public.brands (
@@ -49,6 +51,9 @@ create table public.brands (
   logo_url text,
   contact_name text,
   contact_email text,
+  plan brand_plan not null default 'basic',
+  plan_started_at timestamptz default now(),
+  plan_renews_at timestamptz,
   status text default 'active',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
@@ -128,7 +133,8 @@ create table public.campaign_applications (
   applied_at timestamptz default now(),
   decided_at timestamptz,
   decided_by uuid references public.users(id),
-  admin_note text
+  admin_note text,
+  unique (campaign_id, user_id, channel_type)
 );
 
 create table public.fulfillment_infos (
@@ -163,7 +169,8 @@ create table public.submissions (
   extracted_title text,
   extracted_text text,
   auto_check_score int default 0,
-  auto_check_result jsonb default '{}'::jsonb
+  auto_check_result jsonb default '{}'::jsonb,
+  unique (campaign_id, user_id, channel_type)
 );
 
 create table public.user_penalties (

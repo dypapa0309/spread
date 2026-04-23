@@ -1,6 +1,12 @@
 import { createAdminClient } from "@/supabase/admin";
 import { createClient } from "@/supabase/server";
-import type { ChannelType, ExperienceType, FormatType, Industry, ReviewMode } from "@/types/spread";
+import type { BrandPlan, ChannelType, ExperienceType, FormatType, Industry, ReviewMode } from "@/types/spread";
+
+const PLAN_LIMITS: Record<BrandPlan, { activeCampaignLimit: number; monthlySelectedLimit: number; label: string }> = {
+  basic: { activeCampaignLimit: 2, monthlySelectedLimit: 20, label: "Basic" },
+  standard: { activeCampaignLimit: 5, monthlySelectedLimit: 80, label: "Standard" },
+  pro: { activeCampaignLimit: 15, monthlySelectedLimit: 250, label: "Pro" }
+};
 
 export type SaveCampaignInput = {
   title: string;
@@ -90,6 +96,8 @@ async function persistCampaignRecord(input: SaveCampaignInput, campaignId?: stri
   }
 
   if (!campaignId && currentUser.role === "brand") {
+    const plan = await resolveBrandPlan(adminSupabase, brandId);
+    const limits = PLAN_LIMITS[plan];
     const { count, error: countError } = await adminSupabase
       .from("campaigns")
       .select("id", { count: "exact", head: true })
@@ -97,8 +105,8 @@ async function persistCampaignRecord(input: SaveCampaignInput, campaignId?: stri
       .in("status", ["draft", "open", "paused"]);
 
     if (countError) return { ok: false, message: `캠페인 한도 확인 실패: ${countError.message}` };
-    if ((count ?? 0) >= 2) {
-      return { ok: false, message: "광고주는 동시 진행 캠페인을 최대 2개까지만 등록할 수 있습니다." };
+    if ((count ?? 0) >= limits.activeCampaignLimit) {
+      return { ok: false, message: `${limits.label} 플랜은 동시 진행 캠페인을 최대 ${limits.activeCampaignLimit}개까지 등록할 수 있습니다.` };
     }
   }
 
@@ -248,6 +256,20 @@ async function persistCampaignRecord(input: SaveCampaignInput, campaignId?: stri
   }
 
   return { ok: true, campaignId: savedCampaignId };
+}
+
+async function resolveBrandPlan(
+  supabase: ReturnType<typeof createAdminClient>,
+  brandId: string
+): Promise<BrandPlan> {
+  const { data } = await supabase
+    .from("brands")
+    .select("*")
+    .eq("id", brandId)
+    .maybeSingle();
+
+  const plan = data?.plan;
+  return plan === "standard" || plan === "pro" || plan === "basic" ? plan : "basic";
 }
 
 async function resolveCampaignBrandId({

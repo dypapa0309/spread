@@ -27,7 +27,7 @@ export default async function ProfilePage() {
             <h1 className="mt-2 text-4xl font-black">{user.nickname}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-spread-ink/65">{user.bio}</p>
           </div>
-          <ChannelSettingsPanel />
+          <ChannelSettingsPanel channels={channels} />
         </Card>
         {activePenalty ? (
           <Card className="border-spread-point bg-spread-point/10">

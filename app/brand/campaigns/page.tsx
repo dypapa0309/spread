@@ -26,8 +26,9 @@ export default async function BrandCampaignsPage() {
           )}
         </div>
         <Card className="p-4">
-          <p className="text-sm font-black">등록 한도</p>
+          <p className="text-sm font-black">플랜 한도</p>
           <p className="mt-1 text-sm text-spread-ink/65">{limit.message}</p>
+          <p className="mt-2 text-xs text-spread-ink/50">{limit.priceLabel} · Basic 2개/20명, Standard 5개/80명, Pro 15개/250명</p>
         </Card>
         <div className="grid gap-3">
           {campaigns.map((campaign) => (

@@ -21,11 +21,27 @@ export function CampaignApplicationsManager({ applications, viewer = "admin" }: 
   }
 
   function bulk(status: ApplicationStatus) {
-    setLocalStatus((prev) => ({
-      ...prev,
-      ...Object.fromEntries(selectedIds.map((id) => [id, status]))
-    }));
-    setSelectedIds([]);
+    const selectedRows = rows.filter((row) => selectedIds.includes(row.id));
+    const applicationIds = selectedRows.flatMap((row) => row.applicationIds ?? [row.id]);
+
+    fetch("/api/applications/status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ applicationIds, status })
+    })
+      .then(async (response) => {
+        const result = (await response.json()) as { ok?: boolean; message?: string };
+        if (!response.ok || !result.ok) {
+          window.alert(result.message ?? "상태 변경에 실패했습니다.");
+          return;
+        }
+        setLocalStatus((prev) => ({
+          ...prev,
+          ...Object.fromEntries(selectedIds.map((id) => [id, status]))
+        }));
+        setSelectedIds([]);
+      })
+      .catch(() => window.alert("상태 변경 중 오류가 발생했습니다."));
   }
 
   function downloadCsv(includeFulfillment = false) {
@@ -46,10 +62,10 @@ export function CampaignApplicationsManager({ applications, viewer = "admin" }: 
     const body = rows.map((row) => [
       row.campaign.title,
       row.user.nickname,
-      channelLabels[row.channelType],
-      row.channel?.handle ?? "",
-      row.channel?.channelUrl ?? row.channel?.verificationScreenshotUrl ?? "",
-      String(row.channel?.friendCount ?? row.channel?.followerCount ?? 0),
+      (row.channelTypes ?? [row.channelType]).map((type) => channelLabels[type]).join(" / "),
+      (row.channels ?? [row.channel].filter(Boolean)).map((channel) => channel?.handle ?? "").join(" / "),
+      (row.channels ?? [row.channel].filter(Boolean)).map((channel) => channel?.channelUrl ?? channel?.verificationScreenshotUrl ?? "").join(" / "),
+      (row.channels ?? [row.channel].filter(Boolean)).map((channel) => String(channel?.friendCount ?? channel?.followerCount ?? 0)).join(" / "),
       `${row.approvalRate}%`,
       row.activePenalty ? `${row.activePenalty.suspensionDays}일 제한` : "없음",
       row.message,
@@ -109,11 +125,25 @@ export function CampaignApplicationsManager({ applications, viewer = "admin" }: 
                   <p className="font-black">{row.user.nickname}</p>
                   <p className="text-xs text-spread-ink/55">{row.user.email}</p>
                 </td>
-                <td className="px-3 py-3">{channelLabels[row.channelType]}</td>
                 <td className="px-3 py-3">
-                  {row.channel?.channelUrl ? <a className="font-semibold text-spread-point" href={row.channel.channelUrl}>링크</a> : row.channel?.verificationScreenshotUrl ? <span>캡처</span> : <span>없음</span>}
+                  <div className="flex flex-wrap gap-1">
+                    {(row.channelTypes ?? [row.channelType]).map((type) => <Badge key={type}>{channelLabels[type]}</Badge>)}
+                  </div>
                 </td>
-                <td className="px-3 py-3">{(row.channel?.friendCount ?? row.channel?.followerCount ?? 0).toLocaleString()}명</td>
+                <td className="px-3 py-3">
+                  {(row.channels ?? [row.channel].filter(Boolean)).length ? (
+                    <div className="grid gap-1">
+                      {(row.channels ?? [row.channel].filter(Boolean)).map((channel) => (
+                        <span key={channel?.id}>
+                          {channel?.channelUrl ? <a className="font-semibold text-spread-point" href={channel.channelUrl}>{channelLabels[channel.channelType]}</a> : channel?.verificationScreenshotUrl ? `${channelLabels[channel.channelType]} 캡처` : "없음"}
+                        </span>
+                      ))}
+                    </div>
+                  ) : <span>없음</span>}
+                </td>
+                <td className="px-3 py-3">
+                  {(row.channels ?? [row.channel].filter(Boolean)).map((channel) => `${(channel?.friendCount ?? channel?.followerCount ?? 0).toLocaleString()}명`).join(" / ")}
+                </td>
                 <td className="px-3 py-3">{row.approvalRate}%</td>
                 <td className="px-3 py-3">{row.activePenalty ? `${row.activePenalty.suspensionDays}일` : "없음"}</td>
                 <td className="max-w-52 px-3 py-3 text-spread-ink/65">{row.message}</td>
