@@ -6,7 +6,6 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/member";
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=missing_code`);
@@ -34,39 +33,48 @@ export async function GET(request: NextRequest) {
   }
 
   const user = data.user;
-  const meta = user.user_metadata as {
+  const meta = (user.user_metadata ?? {}) as {
     name?: string;
     nickname?: string;
+    role?: string;
     channel_type?: string;
     channel_handle?: string;
     channel_name?: string;
     channel_url?: string;
     follower_count?: number;
     friend_count?: number;
+    brand_name?: string;
+    contact_name?: string;
   };
 
-  // 이메일 인증 후 최초 로그인 시 public.users 레코드 생성
+  const role = (meta.role === "brand" ? "brand" : "member") as "member" | "brand";
+
+  // 최초 인증 시 public.users 레코드 생성
   const { data: existing } = await supabase
     .from("users")
-    .select("id")
+    .select("id, role")
     .eq("id", user.id)
     .single();
 
-  if (!existing && meta.name && meta.nickname) {
+  if (!existing) {
+    const name = meta.name ?? meta.contact_name ?? user.email!.split("@")[0];
+    const nickname = meta.nickname ?? meta.brand_name ?? user.email!.split("@")[0];
+
     await supabase.from("users").insert({
       id: user.id,
-      role: "member",
-      name: meta.name,
-      nickname: meta.nickname,
+      role,
+      name,
+      nickname,
       email: user.email!,
       bio: "",
       level: 1,
       score: 0,
       completed_missions: 0,
-      status: "active"
+      status: role === "brand" ? "pending" : "active"
     });
 
-    if (meta.channel_type && meta.channel_handle) {
+    // 멤버 채널 등록
+    if (role === "member" && meta.channel_type && meta.channel_handle) {
       await supabase.from("user_channels").insert({
         user_id: user.id,
         channel_type: meta.channel_type,
@@ -82,5 +90,12 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  // role에 따라 리다이렉트
+  const effectiveRole = existing?.role ?? role;
+  const redirectPath =
+    effectiveRole === "admin" ? "/admin" :
+    effectiveRole === "brand" ? "/brand" :
+    "/member";
+
+  return NextResponse.redirect(`${origin}${redirectPath}`);
 }
