@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSupabaseEnv, hasSupabaseEnv } from "@/supabase/env";
+import { createAdminClient } from "@/supabase/admin";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -54,18 +55,20 @@ export async function GET(request: NextRequest) {
 
   const role = (meta.role === "brand" ? "brand" : "member") as "member" | "brand";
 
+  const adminSupabase = createAdminClient();
+
   // 최초 인증 시 public.users 레코드 생성
-  const { data: existing } = await supabase
+  const { data: existing } = await adminSupabase
     .from("users")
     .select("id, role")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (!existing) {
     const name = meta.name ?? meta.contact_name ?? user.email!.split("@")[0];
     const nickname = meta.nickname ?? meta.brand_name ?? user.email!.split("@")[0];
 
-    await supabase.from("users").insert({
+    await adminSupabase.from("users").insert({
       id: user.id,
       role,
       name,
@@ -80,7 +83,7 @@ export async function GET(request: NextRequest) {
 
     // 멤버 채널 등록
     if (role === "member" && meta.channel_type && meta.channel_handle) {
-      await supabase.from("user_channels").insert({
+      await adminSupabase.from("user_channels").insert({
         user_id: user.id,
         channel_type: meta.channel_type,
         channel_name: meta.channel_name ?? meta.channel_handle,

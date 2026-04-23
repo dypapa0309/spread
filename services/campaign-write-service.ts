@@ -45,11 +45,16 @@ export async function saveCampaignRecord(input: SaveCampaignInput): Promise<Save
 
   if (!authUser) return { ok: false, message: "로그인이 필요합니다." };
 
-  const { data: currentUser } = await userSupabase
+  const adminSupabase = createAdminClient();
+  const { data: currentUser, error: currentUserError } = await adminSupabase
     .from("users")
     .select("id, role, email, name, nickname")
     .eq("id", authUser.id)
-    .single();
+    .maybeSingle();
+
+  if (currentUserError) {
+    return { ok: false, message: `사용자 프로필 확인 실패: ${currentUserError.message}` };
+  }
 
   if (!currentUser) {
     return {
@@ -62,7 +67,6 @@ export async function saveCampaignRecord(input: SaveCampaignInput): Promise<Save
     return { ok: false, message: "캠페인 등록은 관리자 또는 광고주 계정만 가능합니다." };
   }
 
-  const adminSupabase = createAdminClient();
   const brandId = await resolveCampaignBrandId({
     supabase: adminSupabase,
     userEmail: currentUser.email ?? authUser.email ?? "",

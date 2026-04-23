@@ -16,6 +16,16 @@ alter table public.submissions enable row level security;
 alter table public.submission_metrics enable row level security;
 alter table public.user_penalties enable row level security;
 
+-- 역할 확인은 users 정책 안에서 users를 다시 조회하지 않도록 security definer 함수로 분리합니다.
+create or replace function public.current_user_role()
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select role::text from public.users where id = auth.uid()
+$$;
+
 -- ────────────────────────────────────────────────────────────
 -- users
 -- ────────────────────────────────────────────────────────────
@@ -24,7 +34,7 @@ create policy "users: 본인 조회" on public.users
 
 create policy "users: 관리자 전체 조회" on public.users
   for select using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
+    public.current_user_role() = 'admin'
   );
 
 create policy "users: 본인 등록" on public.users
@@ -41,7 +51,7 @@ create policy "user_channels: 본인 조회" on public.user_channels
 
 create policy "user_channels: 관리자 전체 조회" on public.user_channels
   for select using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role in ('admin', 'brand'))
+    public.current_user_role() in ('admin', 'brand')
   );
 
 create policy "user_channels: 본인 등록" on public.user_channels
@@ -58,7 +68,7 @@ create policy "brands: 인증 사용자 조회" on public.brands
 
 create policy "brands: 관리자 등록/수정" on public.brands
   for all using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
+    public.current_user_role() = 'admin'
   );
 
 -- ────────────────────────────────────────────────────────────
@@ -69,7 +79,7 @@ create policy "campaigns: 공개 캠페인 조회" on public.campaigns
 
 create policy "campaigns: 관리자 전체 조회/수정" on public.campaigns
   for all using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
+    public.current_user_role() = 'admin'
   );
 
 -- ────────────────────────────────────────────────────────────
@@ -85,13 +95,13 @@ create policy "campaign_guidelines: 인증 사용자 조회" on public.campaign_
   for select using (auth.uid() is not null);
 
 create policy "campaign_channels: 관리자 수정" on public.campaign_channels
-  for all using (exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin'));
+  for all using (public.current_user_role() = 'admin');
 
 create policy "campaign_formats: 관리자 수정" on public.campaign_formats
-  for all using (exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin'));
+  for all using (public.current_user_role() = 'admin');
 
 create policy "campaign_guidelines: 관리자 수정" on public.campaign_guidelines
-  for all using (exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin'));
+  for all using (public.current_user_role() = 'admin');
 
 -- ────────────────────────────────────────────────────────────
 -- campaign_applications
@@ -101,7 +111,7 @@ create policy "applications: 본인 조회" on public.campaign_applications
 
 create policy "applications: 관리자/브랜드 전체 조회" on public.campaign_applications
   for select using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role in ('admin', 'brand'))
+    public.current_user_role() in ('admin', 'brand')
   );
 
 create policy "applications: 본인 등록" on public.campaign_applications
@@ -109,7 +119,7 @@ create policy "applications: 본인 등록" on public.campaign_applications
 
 create policy "applications: 관리자 상태 변경" on public.campaign_applications
   for update using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
+    public.current_user_role() = 'admin'
   );
 
 -- ────────────────────────────────────────────────────────────
@@ -120,7 +130,7 @@ create policy "submissions: 본인 조회" on public.submissions
 
 create policy "submissions: 관리자 전체 조회" on public.submissions
   for select using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
+    public.current_user_role() = 'admin'
   );
 
 create policy "submissions: 본인 등록" on public.submissions
@@ -128,7 +138,7 @@ create policy "submissions: 본인 등록" on public.submissions
 
 create policy "submissions: 관리자 수정" on public.submissions
   for update using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
+    public.current_user_role() = 'admin'
   );
 
 -- ────────────────────────────────────────────────────────────
@@ -139,7 +149,7 @@ create policy "fulfillment: 본인 조회" on public.fulfillment_infos
 
 create policy "fulfillment: 관리자/브랜드 조회" on public.fulfillment_infos
   for select using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role in ('admin', 'brand'))
+    public.current_user_role() in ('admin', 'brand')
   );
 
 create policy "fulfillment: 본인 등록" on public.fulfillment_infos
@@ -153,7 +163,7 @@ create policy "penalties: 본인 조회" on public.user_penalties
 
 create policy "penalties: 관리자 전체" on public.user_penalties
   for all using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
+    public.current_user_role() = 'admin'
   );
 
 -- ────────────────────────────────────────────────────────────
@@ -164,7 +174,7 @@ create policy "metrics: 인증 사용자 조회" on public.submission_metrics
 
 create policy "metrics: 관리자 수정" on public.submission_metrics
   for all using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
+    public.current_user_role() = 'admin'
   );
 
 -- ────────────────────────────────────────────────────────────

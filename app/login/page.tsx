@@ -117,8 +117,7 @@ function MemberLoginForm() {
       const supabase = createClient();
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) { setError(translateAuthError(authError.message)); setLoading(false); return; }
-      const { data: userRow } = await supabase.from("users").select("role").eq("id", data.user.id).single();
-      const role = userRow?.role ?? "member";
+      const role = await getCurrentUserRole("member");
       router.push(role === "admin" ? "/admin" : role === "brand" ? "/brand" : "/member");
       router.refresh();
     } catch { setError("로그인 중 오류가 발생했습니다."); setLoading(false); }
@@ -291,8 +290,7 @@ function BrandLoginForm() {
       const supabase = createClient();
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) { setError(translateAuthError(authError.message)); setLoading(false); return; }
-      const { data: userRow } = await supabase.from("users").select("role").eq("id", data.user.id).single();
-      const role = userRow?.role ?? "brand";
+      const role = await getCurrentUserRole("brand");
       router.push(role === "admin" ? "/admin" : role === "brand" ? "/brand" : "/member");
       router.refresh();
     } catch { setError("로그인 중 오류가 발생했습니다."); setLoading(false); }
@@ -322,6 +320,14 @@ function BrandLoginForm() {
       <p className="mt-4 text-xs text-spread-ink/50">계정 문의: dypapa0309@gmail.com</p>
     </Card>
   );
+}
+
+async function getCurrentUserRole(fallback: "member" | "brand") {
+  const response = await fetch("/api/auth/role", { cache: "no-store" });
+  if (!response.ok) return fallback;
+
+  const result = (await response.json()) as { ok?: boolean; role?: "member" | "admin" | "brand" };
+  return result.ok && result.role ? result.role : fallback;
 }
 
 function BrandSignupForm() {
