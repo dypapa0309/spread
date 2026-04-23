@@ -1,11 +1,22 @@
 import {
+  brands,
+  campaignApplications,
   currentAdmin,
   currentMember,
+  campaigns,
   getCampaignViews,
   getSubmissionViews,
+  userPenalties,
+  users,
   userChannels
 } from "@/lib/mock-data";
-import type { CampaignStatus, SubmissionStatus } from "@/types/spread";
+import type {
+  ApplicationStatus,
+  CampaignApplicationView,
+  CampaignStatus,
+  SubmissionStatus,
+  UserPenalty
+} from "@/types/spread";
 
 export const appMode = process.env.NEXT_PUBLIC_APP_MODE ?? "mock";
 
@@ -35,6 +46,53 @@ export async function listMemberSubmissions(userId = currentMember.id) {
   return getSubmissionViews().filter((submission) => submission.userId === userId);
 }
 
+export function getActivePenalty(userId = currentMember.id, at = new Date("2026-04-23T02:00:00.000Z")): UserPenalty | undefined {
+  return userPenalties.find((penalty) => {
+    const startsAt = new Date(penalty.startsAt);
+    const endsAt = new Date(penalty.endsAt);
+    return penalty.userId === userId && startsAt <= at && endsAt > at;
+  });
+}
+
+export async function listMemberApplications(userId = currentMember.id) {
+  return campaignApplications.filter((application) => application.userId === userId);
+}
+
+export async function listCampaignApplications(campaignId: string): Promise<CampaignApplicationView[]> {
+  return campaignApplications
+    .filter((application) => application.campaignId === campaignId)
+    .map((application) => {
+      const campaign = campaigns.find((item) => item.id === application.campaignId)!;
+      const user = users.find((item) => item.id === application.userId)!;
+      const userSubmissions = getSubmissionViews().filter((submission) => submission.userId === user.id);
+      const approved = userSubmissions.filter((submission) =>
+        ["auto_approved", "approved", "reward_pending", "paid"].includes(submission.status)
+      ).length;
+
+      return {
+        ...application,
+        campaign,
+        brand: brands.find((brand) => brand.id === campaign.brandId)!,
+        user,
+        channel: userChannels.find(
+          (channel) => channel.userId === user.id && channel.channelType === application.channelType
+        ),
+        approvalRate: userSubmissions.length ? Math.round((approved / userSubmissions.length) * 100) : 0,
+        activePenalty: getActivePenalty(user.id)
+      };
+    });
+}
+
+export async function getCampaignApplicationSummary(campaignId: string) {
+  const applications = await listCampaignApplications(campaignId);
+  return {
+    applications,
+    applied: applications.filter((item) => item.status === "applied").length,
+    selected: applications.filter((item) => item.status === "selected").length,
+    rejected: applications.filter((item) => item.status === "rejected").length
+  };
+}
+
 export async function listAdminSubmissions(status?: SubmissionStatus | "all") {
   const views = getSubmissionViews();
   return !status || status === "all" ? views : views.filter((submission) => submission.status === status);
@@ -42,6 +100,7 @@ export async function listAdminSubmissions(status?: SubmissionStatus | "all") {
 
 export async function getMemberProfile() {
   const submissions = await listMemberSubmissions(currentMember.id);
+  const applications = await listMemberApplications(currentMember.id);
   const approved = submissions.filter((submission) =>
     ["auto_approved", "approved", "reward_pending", "paid"].includes(submission.status)
   ).length;
@@ -49,8 +108,11 @@ export async function getMemberProfile() {
   return {
     user: currentMember,
     channels: userChannels.filter((channel) => channel.userId === currentMember.id),
+    applications,
+    activePenalty: getActivePenalty(currentMember.id),
     stats: {
       totalSubmissions: submissions.length,
+      totalApplications: applications.length,
       approvalRate: submissions.length ? Math.round((approved / submissions.length) * 100) : 0,
       preferredChannel: "Threads",
       strongestFormat: "질문/한줄 반응"
@@ -75,7 +137,32 @@ export async function getAdminSummary() {
     rewardPending,
     autoApproved: submissions.filter((submission) => submission.status === "auto_approved").length,
     needsReview: submissions.filter((submission) => submission.status === "needs_review").length,
+    applicationPending: campaignApplications.filter((application) => application.status === "applied").length,
     recentSubmissions: submissions.slice(0, 6),
     recentCampaigns: campaigns.slice(0, 5)
   };
+}
+
+export function getApplicationCta(status?: ApplicationStatus, hasPenalty = Boolean(getActivePenalty())) {
+  if (hasPenalty) {
+    return { label: "사용 제한 중", href: "/member/profile", disabled: true };
+  }
+
+  if (!status) {
+    return { label: "신청하기", href: "", disabled: false };
+  }
+
+  if (status === "selected") {
+    return { label: "제출하기", href: "", disabled: false };
+  }
+
+  if (status === "applied") {
+    return { label: "신청 검토 중", href: "/member/profile", disabled: true };
+  }
+
+  if (status === "rejected") {
+    return { label: "선정되지 않음", href: "/member/profile", disabled: true };
+  }
+
+  return { label: "신청 취소됨", href: "/member/profile", disabled: true };
 }

@@ -1,6 +1,7 @@
 import type {
   Brand,
   Campaign,
+  CampaignApplication,
   CampaignChannel,
   CampaignFormat,
   CampaignGuideline,
@@ -10,7 +11,8 @@ import type {
   SubmissionMetrics,
   SubmissionView,
   User,
-  UserChannel
+  UserChannel,
+  UserPenalty
 } from "@/types/spread";
 
 const now = "2026-04-23T02:00:00.000Z";
@@ -57,14 +59,59 @@ export const users: User[] = [
     status: "active",
     createdAt: "2025-12-20T09:00:00.000Z",
     updatedAt: now
+  },
+  {
+    id: "user-member-3",
+    role: "member",
+    nickname: "daily_signal",
+    name: "김하루",
+    email: "haru@example.com",
+    bio: "X에서 의견형 포스트를 빠르게 테스트합니다.",
+    level: 3,
+    score: 510,
+    totalEarnings: 142000,
+    status: "active",
+    createdAt: "2026-02-02T09:00:00.000Z",
+    updatedAt: now
+  },
+  {
+    id: "user-member-4",
+    role: "member",
+    nickname: "kakao_mina",
+    name: "오민아",
+    email: "mina@example.com",
+    bio: "신뢰 기반 추천 콘텐츠에 강합니다.",
+    level: 2,
+    score: 360,
+    totalEarnings: 82000,
+    status: "active",
+    createdAt: "2026-02-10T09:00:00.000Z",
+    updatedAt: now
+  },
+  {
+    id: "user-member-5",
+    role: "member",
+    nickname: "seo_jinlab",
+    name: "한서진",
+    email: "seojin@example.com",
+    bio: "검색형 비교 리뷰를 꾸준히 씁니다.",
+    level: 4,
+    score: 930,
+    totalEarnings: 512000,
+    status: "active",
+    createdAt: "2026-02-18T09:00:00.000Z",
+    updatedAt: now
   }
 ];
 
 export const userChannels: UserChannel[] = [
-  { id: "uc-1", userId: "user-member-1", channelType: "threads", channelName: "시아 Threads", channelUrl: "https://www.threads.net/@spread_sia", handle: "@spread_sia", followerCount: 3800, isVerified: true, isActive: true, createdAt: now },
-  { id: "uc-2", userId: "user-member-1", channelType: "x", channelName: "시아 X", channelUrl: "https://x.com/spread_sia", handle: "@spread_sia", followerCount: 6200, isVerified: true, isActive: true, createdAt: now },
-  { id: "uc-3", userId: "user-member-1", channelType: "kakao", channelName: "시아 피드", channelUrl: "https://story.kakao.com/spread_sia", handle: "spread_sia", followerCount: 900, isVerified: false, isActive: true, createdAt: now },
-  { id: "uc-4", userId: "user-member-2", channelType: "wordpress", channelName: "도윤 리뷰랩", channelUrl: "https://reviewlab.example.com", handle: "reviewlab", followerCount: 12000, isVerified: true, isActive: true, createdAt: now }
+  { id: "uc-1", userId: "user-member-1", channelType: "threads", channelName: "시아 Threads", channelUrl: "https://www.threads.net/@spread_sia", handle: "@spread_sia", followerCount: 3800, verificationStatus: "verified", verifiedAt: now, isVerified: true, isActive: true, createdAt: now },
+  { id: "uc-2", userId: "user-member-1", channelType: "x", channelName: "시아 X", channelUrl: "https://x.com/spread_sia", handle: "@spread_sia", followerCount: 6200, verificationStatus: "verified", verifiedAt: now, isVerified: true, isActive: true, createdAt: now },
+  { id: "uc-3", userId: "user-member-1", channelType: "kakao", channelName: "시아 피드", handle: "spread_sia", followerCount: 0, friendCount: 900, verificationScreenshotUrl: "/mock/kakao-profile-sia.png", verificationStatus: "pending", isVerified: false, isActive: true, createdAt: now },
+  { id: "uc-4", userId: "user-member-2", channelType: "wordpress", channelName: "도윤 리뷰랩", channelUrl: "https://reviewlab.example.com", handle: "reviewlab", followerCount: 12000, verificationStatus: "verified", verifiedAt: now, isVerified: true, isActive: true, createdAt: now },
+  { id: "uc-5", userId: "user-member-3", channelType: "x", channelName: "하루 X", channelUrl: "https://x.com/daily_signal", handle: "@daily_signal", followerCount: 2400, verificationStatus: "verified", verifiedAt: now, isVerified: true, isActive: true, createdAt: now },
+  { id: "uc-6", userId: "user-member-4", channelType: "kakao", channelName: "민아 피드", handle: "kakao_mina", followerCount: 0, friendCount: 1280, verificationScreenshotUrl: "/mock/kakao-profile-mina.png", verificationStatus: "verified", verifiedAt: now, isVerified: true, isActive: true, createdAt: now },
+  { id: "uc-7", userId: "user-member-5", channelType: "wordpress", channelName: "서진랩", channelUrl: "https://seojinlab.example.com", handle: "seojinlab", followerCount: 8300, verificationStatus: "verified", verifiedAt: now, isVerified: true, isActive: true, createdAt: now }
 ];
 
 export const brands: Brand[] = [
@@ -74,12 +121,12 @@ export const brands: Brand[] = [
 ];
 
 export const campaigns: Campaign[] = [
-  { id: "camp-1", brandId: "brand-1", title: "Threads 한줄 반응 실험", slug: "threads-one-line-nova", summary: "업무 루틴을 바꾸는 한 문장을 Threads에 남겨요.", description: "Nova Desk의 협업 기록 기능을 써보고 빠르게 반응이 생길 만한 한 문장을 작성합니다.", coverImageUrl: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=1200&auto=format&fit=crop", productName: "Nova Desk", startAt: "2026-04-20T00:00:00.000Z", endAt: "2026-05-02T14:59:00.000Z", recruitLimit: 80, baseReward: 12000, bonusRewardMax: 18000, status: "open", reviewMode: "semi_auto", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now },
-  { id: "camp-2", brandId: "brand-2", title: "X 의견형 커피 구독 미션", slug: "x-debate-mellow", summary: "커피 구독이 출근 루틴을 바꾸는지 의견을 던져요.", description: "Mellow Bean 첫 배송 경험을 바탕으로 공유와 답글이 생기는 의견형 포스트를 작성합니다.", coverImageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=1200&auto=format&fit=crop", productName: "Mellow Bean Trial", startAt: "2026-04-18T00:00:00.000Z", endAt: "2026-05-05T14:59:00.000Z", recruitLimit: 60, baseReward: 15000, bonusRewardMax: 30000, status: "open", reviewMode: "semi_auto", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now },
-  { id: "camp-3", brandId: "brand-3", title: "WordPress 비교 리뷰", slug: "wordpress-comparison-fitloop", summary: "운동 기록 앱 3개를 비교하고 검색 자산을 만듭니다.", description: "FitLoop를 기존 운동 기록 앱과 비교해 장단점이 분명한 WordPress 글을 발행합니다.", coverImageUrl: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop", productName: "FitLoop Pro", startAt: "2026-04-10T00:00:00.000Z", endAt: "2026-05-10T14:59:00.000Z", recruitLimit: 25, baseReward: 65000, bonusRewardMax: 50000, status: "open", reviewMode: "auto", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now },
-  { id: "camp-4", brandId: "brand-2", title: "KakaoTalk 추천 피드", slug: "kakao-recommend-mellow", summary: "가까운 지인에게 추천하듯 피드에 남기는 전환형 미션.", description: "Mellow Bean을 누구에게 추천하는지 중심으로 KakaoTalk 피드 인증을 제출합니다.", coverImageUrl: "https://images.unsplash.com/photo-1442512595331-e89e73853f31?q=80&w=1200&auto=format&fit=crop", productName: "Mellow Bean Sample", startAt: "2026-04-21T00:00:00.000Z", endAt: "2026-05-04T14:59:00.000Z", recruitLimit: 40, baseReward: 18000, bonusRewardMax: 12000, status: "open", reviewMode: "manual", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now },
-  { id: "camp-5", brandId: "brand-1", title: "업무 기록 질문 미션", slug: "threads-question-nova", summary: "팀 기록 공개에 대한 질문으로 반응을 모읍니다.", description: "Threads 또는 X에서 업무 기록 방식에 대한 질문형 콘텐츠를 발행합니다.", coverImageUrl: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?q=80&w=1200&auto=format&fit=crop", productName: "Nova Desk Notes", startAt: "2026-04-15T00:00:00.000Z", endAt: "2026-04-28T14:59:00.000Z", recruitLimit: 100, baseReward: 10000, bonusRewardMax: 15000, status: "open", reviewMode: "semi_auto", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now },
-  { id: "camp-6", brandId: "brand-3", title: "운동 루틴 스토리", slug: "x-story-fitloop", summary: "작은 루틴이 어떻게 지속되는지 짧은 스토리로 공유해요.", description: "FitLoop의 streak 기능을 사용한 뒤 X에 짧은 스토리형 포스트를 작성합니다.", coverImageUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?q=80&w=1200&auto=format&fit=crop", productName: "FitLoop Streak", startAt: "2026-04-01T00:00:00.000Z", endAt: "2026-04-23T14:59:00.000Z", recruitLimit: 70, baseReward: 13000, bonusRewardMax: 22000, status: "closed", reviewMode: "semi_auto", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now }
+  { id: "camp-1", brandId: "brand-1", title: "Threads 한줄 반응 실험", slug: "threads-one-line-nova", summary: "업무 루틴을 바꾸는 한 문장을 Threads에 남겨요.", description: "Nova Desk의 협업 기록 기능을 써보고 빠르게 반응이 생길 만한 한 문장을 작성합니다.", coverImageUrl: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=1200&auto=format&fit=crop", productName: "Nova Desk", startAt: "2026-04-20T00:00:00.000Z", endAt: "2026-05-02T14:59:00.000Z", applyEndAt: "2026-04-27T14:59:00.000Z", submissionDueAt: "2026-05-02T14:59:00.000Z", recruitLimit: 80, baseReward: 12000, bonusRewardMax: 18000, status: "open", reviewMode: "semi_auto", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now },
+  { id: "camp-2", brandId: "brand-2", title: "X 의견형 커피 구독 미션", slug: "x-debate-mellow", summary: "커피 구독이 출근 루틴을 바꾸는지 의견을 던져요.", description: "Mellow Bean 첫 배송 경험을 바탕으로 공유와 답글이 생기는 의견형 포스트를 작성합니다.", coverImageUrl: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=1200&auto=format&fit=crop", productName: "Mellow Bean Trial", startAt: "2026-04-18T00:00:00.000Z", endAt: "2026-05-05T14:59:00.000Z", applyEndAt: "2026-04-29T14:59:00.000Z", submissionDueAt: "2026-05-05T14:59:00.000Z", recruitLimit: 60, baseReward: 15000, bonusRewardMax: 30000, status: "open", reviewMode: "semi_auto", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now },
+  { id: "camp-3", brandId: "brand-3", title: "WordPress 비교 리뷰", slug: "wordpress-comparison-fitloop", summary: "운동 기록 앱 3개를 비교하고 검색 자산을 만듭니다.", description: "FitLoop를 기존 운동 기록 앱과 비교해 장단점이 분명한 WordPress 글을 발행합니다.", coverImageUrl: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop", productName: "FitLoop Pro", startAt: "2026-04-10T00:00:00.000Z", endAt: "2026-05-10T14:59:00.000Z", applyEndAt: "2026-04-30T14:59:00.000Z", submissionDueAt: "2026-05-10T14:59:00.000Z", recruitLimit: 25, baseReward: 65000, bonusRewardMax: 50000, status: "open", reviewMode: "auto", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now },
+  { id: "camp-4", brandId: "brand-2", title: "KakaoTalk 추천 피드", slug: "kakao-recommend-mellow", summary: "가까운 지인에게 추천하듯 피드에 남기는 전환형 미션.", description: "Mellow Bean을 누구에게 추천하는지 중심으로 KakaoTalk 피드 인증을 제출합니다.", coverImageUrl: "https://images.unsplash.com/photo-1442512595331-e89e73853f31?q=80&w=1200&auto=format&fit=crop", productName: "Mellow Bean Sample", startAt: "2026-04-21T00:00:00.000Z", endAt: "2026-05-04T14:59:00.000Z", applyEndAt: "2026-04-28T14:59:00.000Z", submissionDueAt: "2026-05-04T14:59:00.000Z", recruitLimit: 40, baseReward: 18000, bonusRewardMax: 12000, status: "open", reviewMode: "manual", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now },
+  { id: "camp-5", brandId: "brand-1", title: "업무 기록 질문 미션", slug: "threads-question-nova", summary: "팀 기록 공개에 대한 질문으로 반응을 모읍니다.", description: "Threads 또는 X에서 업무 기록 방식에 대한 질문형 콘텐츠를 발행합니다.", coverImageUrl: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?q=80&w=1200&auto=format&fit=crop", productName: "Nova Desk Notes", startAt: "2026-04-15T00:00:00.000Z", endAt: "2026-04-28T14:59:00.000Z", applyEndAt: "2026-04-24T14:59:00.000Z", submissionDueAt: "2026-04-28T14:59:00.000Z", recruitLimit: 100, baseReward: 10000, bonusRewardMax: 15000, status: "open", reviewMode: "semi_auto", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now },
+  { id: "camp-6", brandId: "brand-3", title: "운동 루틴 스토리", slug: "x-story-fitloop", summary: "작은 루틴이 어떻게 지속되는지 짧은 스토리로 공유해요.", description: "FitLoop의 streak 기능을 사용한 뒤 X에 짧은 스토리형 포스트를 작성합니다.", coverImageUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?q=80&w=1200&auto=format&fit=crop", productName: "FitLoop Streak", startAt: "2026-04-01T00:00:00.000Z", endAt: "2026-04-23T14:59:00.000Z", applyEndAt: "2026-04-12T14:59:00.000Z", submissionDueAt: "2026-04-23T14:59:00.000Z", recruitLimit: 70, baseReward: 13000, bonusRewardMax: 22000, status: "closed", reviewMode: "semi_auto", visibility: "public", createdBy: "user-admin-1", createdAt: now, updatedAt: now }
 ];
 
 export const campaignChannels: CampaignChannel[] = [
@@ -100,6 +147,38 @@ export const campaignFormats: CampaignFormat[] = [
   { id: "cf-5", campaignId: "camp-4", formatType: "recommendation" },
   { id: "cf-6", campaignId: "camp-5", formatType: "question" },
   { id: "cf-7", campaignId: "camp-6", formatType: "story" }
+];
+
+export const campaignApplications: CampaignApplication[] = [
+  { id: "app-1", campaignId: "camp-1", userId: "user-member-1", channelType: "threads", message: "짧은 업무 루틴 문장으로 반응을 만들겠습니다.", status: "selected", appliedAt: "2026-04-20T04:00:00.000Z", decidedAt: "2026-04-20T08:00:00.000Z", decidedBy: "user-admin-1", adminNote: "Threads 반응 속도 좋음" },
+  { id: "app-2", campaignId: "camp-1", userId: "user-member-2", channelType: "threads", message: "기록형 콘텐츠 관점으로 한줄 포스트를 만들겠습니다.", status: "selected", appliedAt: "2026-04-20T04:30:00.000Z", decidedAt: "2026-04-20T08:00:00.000Z", decidedBy: "user-admin-1" },
+  { id: "app-3", campaignId: "camp-1", userId: "user-member-3", channelType: "threads", message: "업무툴 실사용자 관점으로 참여합니다.", status: "applied", appliedAt: "2026-04-21T02:20:00.000Z" },
+  { id: "app-4", campaignId: "camp-2", userId: "user-member-1", channelType: "x", message: "구독 루틴에 대한 의견형 포스트로 확산을 만들겠습니다.", status: "applied", appliedAt: "2026-04-21T03:00:00.000Z" },
+  { id: "app-5", campaignId: "camp-2", userId: "user-member-2", channelType: "x", message: "질문형으로 댓글 반응을 만들겠습니다.", status: "selected", appliedAt: "2026-04-20T10:00:00.000Z", decidedAt: "2026-04-21T01:00:00.000Z", decidedBy: "user-admin-1" },
+  { id: "app-6", campaignId: "camp-2", userId: "user-member-3", channelType: "x", message: "X에서 아침 루틴 논쟁형으로 풀어보겠습니다.", status: "selected", appliedAt: "2026-04-20T11:00:00.000Z", decidedAt: "2026-04-21T01:00:00.000Z", decidedBy: "user-admin-1" },
+  { id: "app-7", campaignId: "camp-3", userId: "user-member-1", channelType: "wordpress", message: "검색형 리뷰는 약하지만 직접 비교 글로 도전해보겠습니다.", status: "rejected", appliedAt: "2026-04-19T01:00:00.000Z", decidedAt: "2026-04-20T01:00:00.000Z", decidedBy: "user-admin-1", adminNote: "WordPress 채널 미등록" },
+  { id: "app-8", campaignId: "camp-3", userId: "user-member-2", channelType: "wordpress", message: "비교 리뷰 경험이 있어 장문 SEO 글로 참여합니다.", status: "selected", appliedAt: "2026-04-14T02:00:00.000Z", decidedAt: "2026-04-15T03:00:00.000Z", decidedBy: "user-admin-1" },
+  { id: "app-9", campaignId: "camp-3", userId: "user-member-5", channelType: "wordpress", message: "운동 앱 비교 키워드를 잡아 글을 쓰겠습니다.", status: "applied", appliedAt: "2026-04-21T02:00:00.000Z" },
+  { id: "app-10", campaignId: "camp-4", userId: "user-member-4", channelType: "kakao", message: "친구 기반 추천형 피드로 전환을 노리겠습니다.", status: "selected", appliedAt: "2026-04-21T05:00:00.000Z", decidedAt: "2026-04-22T01:00:00.000Z", decidedBy: "user-admin-1" },
+  { id: "app-11", campaignId: "camp-4", userId: "user-member-1", channelType: "kakao", message: "카카오 친구 대상 추천 문구로 참여하고 싶습니다.", status: "applied", appliedAt: "2026-04-22T03:00:00.000Z" },
+  { id: "app-12", campaignId: "camp-5", userId: "user-member-1", channelType: "threads", message: "질문형 Threads 포스트로 반응을 모으겠습니다.", status: "selected", appliedAt: "2026-04-16T02:00:00.000Z", decidedAt: "2026-04-16T08:00:00.000Z", decidedBy: "user-admin-1" },
+  { id: "app-13", campaignId: "camp-5", userId: "user-member-3", channelType: "x", message: "X 질문형으로 답글을 유도하겠습니다.", status: "rejected", appliedAt: "2026-04-16T04:00:00.000Z", decidedAt: "2026-04-17T01:00:00.000Z", decidedBy: "user-admin-1" },
+  { id: "app-14", campaignId: "camp-6", userId: "user-member-2", channelType: "x", message: "루틴 스토리로 작성하겠습니다.", status: "selected", appliedAt: "2026-04-04T04:00:00.000Z", decidedAt: "2026-04-05T01:00:00.000Z", decidedBy: "user-admin-1" }
+];
+
+export const userPenalties: UserPenalty[] = [
+  {
+    id: "penalty-1",
+    userId: "user-member-2",
+    submissionId: "sub-6",
+    campaignId: "camp-6",
+    reason: "제출 기한 초과",
+    daysLate: 2,
+    suspensionDays: 6,
+    startsAt: "2026-04-23T00:00:00.000Z",
+    endsAt: "2026-04-29T00:00:00.000Z",
+    createdAt: "2026-04-23T00:00:00.000Z"
+  }
 ];
 
 export const guidelines: CampaignGuideline[] = campaigns.map((campaign) => ({
@@ -190,7 +269,12 @@ export function getCampaignViews(): CampaignView[] {
     channels: campaignChannels.filter((item) => item.campaignId === campaign.id).map((item) => item.channelType),
     formats: campaignFormats.filter((item) => item.campaignId === campaign.id).map((item) => item.formatType),
     guideline: guidelines.find((item) => item.campaignId === campaign.id)!,
-    submissionsCount: submissions.filter((item) => item.campaignId === campaign.id).length
+    submissionsCount: submissions.filter((item) => item.campaignId === campaign.id).length,
+    applicationsCount: campaignApplications.filter((item) => item.campaignId === campaign.id).length,
+    selectedCount: campaignApplications.filter((item) => item.campaignId === campaign.id && item.status === "selected").length,
+    myApplicationStatus: campaignApplications.find(
+      (item) => item.campaignId === campaign.id && item.userId === currentMember.id
+    )?.status
   }));
 }
 
@@ -203,7 +287,8 @@ export function getSubmissionViews(): SubmissionView[] {
       brand: brands.find((brand) => brand.id === campaign.brandId)!,
       user: users.find((user) => user.id === submission.userId)!,
       reward: rewards.find((reward) => reward.submissionId === submission.id),
-      metrics: metrics.find((metric) => metric.submissionId === submission.id)
+      metrics: metrics.find((metric) => metric.submissionId === submission.id),
+      penalty: userPenalties.find((penalty) => penalty.submissionId === submission.id)
     };
   });
 }

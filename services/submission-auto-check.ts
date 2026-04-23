@@ -1,9 +1,10 @@
-import { getCampaignViews, submissions } from "@/lib/mock-data";
+import { campaignApplications, currentMember, getCampaignViews, submissions, userPenalties } from "@/lib/mock-data";
 import type {
   AutoCheckIssue,
   AutoCheckResult,
   CampaignView,
   ChannelType,
+  SubmissionEligibility,
   SubmissionStatus
 } from "@/types/spread";
 
@@ -14,6 +15,8 @@ export type SubmissionAutoCheckInput = {
   postText: string;
   screenshotUrl?: string;
 };
+
+const mockNow = new Date("2026-04-23T02:00:00.000Z");
 
 const channelHosts: Record<ChannelType, string[]> = {
   threads: ["threads.net"],
@@ -94,6 +97,59 @@ export function determineSubmissionStatus(result: AutoCheckResult, campaign: Cam
   }
 
   return "needs_review";
+}
+
+export function calculateDeadlinePenalty(dueAt: string, submittedAt = mockNow) {
+  const due = new Date(dueAt);
+  const diffMs = submittedAt.getTime() - due.getTime();
+  if (diffMs <= 0) return { daysLate: 0, suspensionDays: 0 };
+
+  const daysLate = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  return { daysLate, suspensionDays: daysLate * 3 };
+}
+
+export function checkSubmissionEligibility(campaignId: string, userId = currentMember.id): SubmissionEligibility {
+  const campaign = getCampaignViews().find((item) => item.id === campaignId);
+  if (!campaign) {
+    return { canSubmit: false, reason: "campaign_missing", message: "캠페인을 찾을 수 없습니다." };
+  }
+
+  const activePenalty = userPenalties.find((penalty) => {
+    const startsAt = new Date(penalty.startsAt);
+    const endsAt = new Date(penalty.endsAt);
+    return penalty.userId === userId && startsAt <= mockNow && endsAt > mockNow;
+  });
+
+  if (activePenalty) {
+    return {
+      canSubmit: false,
+      reason: "penalty",
+      message: `제출 기한 초과 패널티로 ${new Date(activePenalty.endsAt).toLocaleDateString("ko-KR")}까지 사용이 제한됩니다.`,
+      penalty: activePenalty
+    };
+  }
+
+  const application = campaignApplications.find(
+    (item) => item.campaignId === campaignId && item.userId === userId
+  );
+
+  if (!application) {
+    return { canSubmit: false, reason: "not_applied", message: "먼저 캠페인에 신청해야 합니다." };
+  }
+
+  if (application.status === "applied") {
+    return { canSubmit: false, reason: "pending", message: "관리자 선정이 끝난 뒤 제출할 수 있습니다." };
+  }
+
+  if (application.status === "rejected") {
+    return { canSubmit: false, reason: "rejected", message: "이번 캠페인에는 선정되지 않았습니다." };
+  }
+
+  if (application.status === "cancelled") {
+    return { canSubmit: false, reason: "not_applied", message: "취소된 신청입니다. 다시 신청해 주세요." };
+  }
+
+  return { canSubmit: true, reason: "selected", message: "선정된 캠페인입니다. 제출할 수 있습니다." };
 }
 
 export function runSubmissionAutoCheck(input: SubmissionAutoCheckInput): AutoCheckResult {

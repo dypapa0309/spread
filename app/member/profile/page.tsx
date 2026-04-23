@@ -1,15 +1,14 @@
-import { Settings } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { ChannelSettingsPanel } from "@/components/member/channel-settings-panel";
 import { MetricCard } from "@/components/metric-card";
 import { SubmissionList } from "@/components/submission-list";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
-import { channelLabels, money } from "@/lib/labels";
+import { channelLabels, money, shortDate, verificationStatusLabels } from "@/lib/labels";
 import { getMemberProfile, listMemberSubmissions } from "@/services/spread-service";
 
 export default async function ProfilePage() {
-  const { user, channels, stats } = await getMemberProfile();
+  const { user, channels, stats, activePenalty } = await getMemberProfile();
   const submissions = await listMemberSubmissions(user.id);
 
   return (
@@ -21,15 +20,21 @@ export default async function ProfilePage() {
             <h1 className="mt-2 text-4xl font-black">{user.nickname}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-spread-ink/65">{user.bio}</p>
           </div>
-          <Button variant="outline">
-            <Settings size={18} />
-            설정
-          </Button>
+          <ChannelSettingsPanel />
         </Card>
+        {activePenalty ? (
+          <Card className="border-spread-point bg-spread-point/10">
+            <p className="text-sm font-black text-spread-point">사용 제한 중</p>
+            <p className="mt-2 text-sm leading-6">
+              {activePenalty.reason}: {activePenalty.daysLate}일 지연으로 {activePenalty.suspensionDays}일 제한이 적용되었습니다.
+              해제일은 {shortDate(activePenalty.endsAt)}입니다.
+            </p>
+          </Card>
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-3">
           <MetricCard label="총 수익" value={money(user.totalEarnings)} />
           <MetricCard label="승인률" value={`${stats.approvalRate}%`} />
-          <MetricCard label="총 제출" value={`${stats.totalSubmissions}건`} />
+          <MetricCard label="신청/제출" value={`${stats.totalApplications}/${stats.totalSubmissions}`} />
         </div>
         <div className="grid gap-5 lg:grid-cols-2">
           <Card>
@@ -39,9 +44,11 @@ export default async function ProfilePage() {
                 <div key={channel.id} className="flex items-center justify-between rounded-2xl border border-spread-ink/10 p-3">
                   <div>
                     <p className="font-black">{channelLabels[channel.channelType]}</p>
-                    <p className="text-sm text-spread-ink/60">{channel.handle} · {channel.followerCount.toLocaleString()}명</p>
+                    <p className="text-sm text-spread-ink/60">
+                      {channel.handle} · {(channel.friendCount ?? channel.followerCount).toLocaleString()}명
+                    </p>
                   </div>
-                  <Badge active={channel.isVerified}>인증</Badge>
+                  <Badge active={channel.isVerified}>{verificationStatusLabels[channel.verificationStatus]}</Badge>
                 </div>
               ))}
             </div>

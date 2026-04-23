@@ -1,6 +1,7 @@
 import type {
   Brand,
   Campaign,
+  CampaignApplication,
   CampaignChannel,
   CampaignFormat,
   CampaignGuideline,
@@ -8,7 +9,8 @@ import type {
   Submission,
   SubmissionMetrics,
   User,
-  UserChannel
+  UserChannel,
+  UserPenalty
 } from "@/types/spread";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
@@ -23,8 +25,10 @@ export type Database = {
       campaign_channels: { Row: CampaignChannel; Insert: Partial<CampaignChannel>; Update: Partial<CampaignChannel> };
       campaign_formats: { Row: CampaignFormat; Insert: Partial<CampaignFormat>; Update: Partial<CampaignFormat> };
       campaign_guidelines: { Row: CampaignGuideline; Insert: Partial<CampaignGuideline>; Update: Partial<CampaignGuideline> };
+      campaign_applications: { Row: CampaignApplication; Insert: Partial<CampaignApplication>; Update: Partial<CampaignApplication> };
       submissions: { Row: Submission; Insert: Partial<Submission>; Update: Partial<Submission> };
       submission_metrics: { Row: SubmissionMetrics; Insert: Partial<SubmissionMetrics>; Update: Partial<SubmissionMetrics> };
+      user_penalties: { Row: UserPenalty; Insert: Partial<UserPenalty>; Update: Partial<UserPenalty> };
       rewards: { Row: Reward; Insert: Partial<Reward>; Update: Partial<Reward> };
     };
   };

@@ -1,4 +1,4 @@
-import type { ChannelType, FormatType, ReviewMode, SubmissionStatus } from "@/types/spread";
+import type { ApplicationStatus, ChannelType, FormatType, ReviewMode, SubmissionStatus, VerificationStatus } from "@/types/spread";
 
 export const channelLabels: Record<ChannelType, string> = {
   threads: "Threads",
@@ -67,6 +67,19 @@ export const submissionStatusLabels: Record<SubmissionStatus, string> = {
   reward_pending: "보상 대기",
   paid: "지급 완료",
   revoked: "취소"
+};
+
+export const applicationStatusLabels: Record<ApplicationStatus, string> = {
+  applied: "신청 검토 중",
+  selected: "선정",
+  rejected: "미선정",
+  cancelled: "취소"
+};
+
+export const verificationStatusLabels: Record<VerificationStatus, string> = {
+  pending: "확인 대기",
+  verified: "인증 완료",
+  rejected: "인증 반려"
 };
 
 export const money = (value: number) => `${value.toLocaleString("ko-KR")}원`;

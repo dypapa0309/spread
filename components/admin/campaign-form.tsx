@@ -111,6 +111,10 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
               <Field label="최소 유지 시간"><Input type="number" placeholder="24" /></Field>
               <Field label="최소 글자 수"><Input type="number" placeholder="80" /></Field>
             </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="신청 마감"><Input type="datetime-local" /></Field>
+              <Field label="제출 마감"><Input type="datetime-local" /></Field>
+            </div>
           </FormSection>
           <Button onClick={() => setSaved(true)}>저장</Button>
         </div>

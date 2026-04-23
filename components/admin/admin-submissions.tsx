@@ -82,6 +82,14 @@ export function AdminSubmissions({ initialSubmissions }: { initialSubmissions: S
               ))}
             </div>
           </div>
+          {selected.penalty ? (
+            <div className="mt-4 rounded-2xl border border-spread-point bg-spread-point/10 p-4">
+              <p className="text-sm font-black text-spread-point">기한 패널티</p>
+              <p className="mt-2 text-sm">
+                {selected.penalty.daysLate}일 지연 · {selected.penalty.suspensionDays}일 사용 제한
+              </p>
+            </div>
+          ) : null}
           <div className="mt-4 grid gap-2">
             <p className="text-sm font-black">운영자 메모</p>
             <Textarea placeholder="판단 근거를 남겨주세요." defaultValue={selected.reviewNote} />

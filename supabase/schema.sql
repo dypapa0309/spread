@@ -5,6 +5,8 @@ create type campaign_status as enum ('draft', 'open', 'closed', 'paused', 'compl
 create type review_mode as enum ('manual', 'semi_auto', 'auto');
 create type submission_status as enum ('submitted', 'processing', 'needs_review', 'auto_approved', 'auto_rejected', 'approved', 'rejected', 'reward_pending', 'paid', 'revoked');
 create type reward_status as enum ('pending', 'approved', 'paid', 'cancelled');
+create type application_status as enum ('applied', 'selected', 'rejected', 'cancelled');
+create type verification_status as enum ('pending', 'verified', 'rejected');
 
 create table public.users (
   id uuid primary key default gen_random_uuid(),
@@ -20,6 +22,23 @@ create table public.users (
   status text default 'active',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
+);
+
+create table public.user_channels (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.users(id) on delete cascade,
+  channel_type channel_type not null,
+  channel_name text not null,
+  channel_url text,
+  handle text not null,
+  follower_count int default 0,
+  friend_count int,
+  verification_screenshot_url text,
+  verification_status verification_status default 'pending',
+  verified_at timestamptz,
+  is_verified boolean default false,
+  is_active boolean default true,
+  created_at timestamptz default now()
 );
 
 create table public.brands (
@@ -46,6 +65,8 @@ create table public.campaigns (
   product_name text not null,
   start_at timestamptz,
   end_at timestamptz,
+  apply_end_at timestamptz,
+  submission_due_at timestamptz,
   recruit_limit int,
   base_reward int default 0,
   bonus_reward_max int default 0,
@@ -86,6 +107,19 @@ create table public.campaign_guidelines (
   extra_note text default ''
 );
 
+create table public.campaign_applications (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid references public.campaigns(id) on delete cascade,
+  user_id uuid references public.users(id) on delete cascade,
+  channel_type channel_type not null,
+  message text default '',
+  status application_status default 'applied',
+  applied_at timestamptz default now(),
+  decided_at timestamptz,
+  decided_by uuid references public.users(id),
+  admin_note text
+);
+
 create table public.submissions (
   id uuid primary key default gen_random_uuid(),
   campaign_id uuid references public.campaigns(id),
@@ -105,6 +139,19 @@ create table public.submissions (
   extracted_text text,
   auto_check_score int default 0,
   auto_check_result jsonb default '{}'::jsonb
+);
+
+create table public.user_penalties (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references public.users(id) on delete cascade,
+  submission_id uuid references public.submissions(id),
+  campaign_id uuid references public.campaigns(id),
+  reason text not null,
+  days_late int default 0,
+  suspension_days int default 0,
+  starts_at timestamptz not null,
+  ends_at timestamptz not null,
+  created_at timestamptz default now()
 );
 
 create table public.submission_metrics (

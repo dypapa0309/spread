@@ -30,7 +30,21 @@ export function CampaignCard({ campaign }: { campaign: CampaignView }) {
       </div>
       <div className="grid grid-cols-3 gap-3 text-sm">
         <div>
-          <p className="text-xs text-spread-ink/55">기본</p>
+          <p className="text-xs text-spread-ink/55">모집</p>
+          <p className="font-black">{campaign.recruitLimit}명</p>
+        </div>
+        <div>
+          <p className="text-xs text-spread-ink/55">지원</p>
+          <p className="font-black">{campaign.applicationsCount}명</p>
+        </div>
+        <div>
+          <p className="text-xs text-spread-ink/55">선정</p>
+          <p className="font-black">{campaign.selectedCount}명</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-sm">
+        <div>
+          <p className="text-xs text-spread-ink/55">보상</p>
           <p className="font-black">{money(campaign.baseReward)}</p>
         </div>
         <div>

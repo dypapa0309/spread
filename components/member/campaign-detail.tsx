@@ -1,16 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { LinkButton } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Badge } from "@/components/ui/badge";
+import { getApplicationCta } from "@/services/spread-service";
 import { channelLabels, formatLabels, formatTips, money, reviewModeLabels, shortDate } from "@/lib/labels";
-import type { CampaignView, FormatType } from "@/types/spread";
+import type { CampaignView, FormatType, UserPenalty } from "@/types/spread";
 
-export function CampaignDetail({ campaign }: { campaign: CampaignView }) {
+export function CampaignDetail({ campaign, activePenalty }: { campaign: CampaignView; activePenalty?: UserPenalty }) {
   const [format, setFormat] = useState<FormatType>(campaign.formats[0]);
   const tip = formatTips[format];
+  const cta = getApplicationCta(campaign.myApplicationStatus, Boolean(activePenalty));
+  const ctaHref =
+    campaign.myApplicationStatus === "selected"
+      ? `/member/submit/${campaign.id}`
+      : `/member/apply/${campaign.id}`;
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
@@ -24,6 +30,9 @@ export function CampaignDetail({ campaign }: { campaign: CampaignView }) {
           <div className="flex flex-wrap gap-2">
             {campaign.channels.map((channel) => <Badge key={channel}>{channelLabels[channel]}</Badge>)}
             <Badge active>{reviewModeLabels[campaign.reviewMode]}</Badge>
+            <Badge>모집 {campaign.recruitLimit}명</Badge>
+            <Badge>지원 {campaign.applicationsCount}명</Badge>
+            <Badge>선정 {campaign.selectedCount}명</Badge>
           </div>
           <h1 className="mt-5 text-4xl font-black leading-tight">{campaign.title}</h1>
           <p className="mt-3 text-sm font-semibold text-spread-ink/60">{campaign.brand.name} · {campaign.productName}</p>
@@ -59,13 +68,25 @@ export function CampaignDetail({ campaign }: { campaign: CampaignView }) {
           <div className="mt-4 grid gap-3">
             <Row label="기본 보상" value={money(campaign.baseReward)} />
             <Row label="최대 보너스" value={money(campaign.bonusRewardMax)} />
-            <Row label="마감" value={shortDate(campaign.endAt)} />
+            <Row label="신청 마감" value={shortDate(campaign.applyEndAt)} />
+            <Row label="제출 마감" value={shortDate(campaign.submissionDueAt)} />
             <Row label="유지 시간" value={`${campaign.guideline.minLiveHours}시간`} />
             <Row label="최소 길이" value={`${campaign.guideline.minTextLength}자`} />
           </div>
-          <LinkButton href={`/member/submit/${campaign.id}`} className="mt-5 w-full">
-            참여하기
-          </LinkButton>
+          {cta.disabled ? (
+            <Button className="mt-5 w-full" variant="outline" disabled>
+              {cta.label}
+            </Button>
+          ) : (
+            <LinkButton href={ctaHref} className="mt-5 w-full">
+              {cta.label}
+            </LinkButton>
+          )}
+          {activePenalty ? (
+            <p className="mt-3 rounded-2xl border border-spread-point bg-spread-point/10 p-3 text-sm font-semibold text-spread-point">
+              {shortDate(activePenalty.endsAt)}까지 사용 제한 중
+            </p>
+          ) : null}
         </Card>
         <Card>
           <h2 className="text-lg font-black">검수 방식</h2>

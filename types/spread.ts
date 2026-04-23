@@ -16,6 +16,8 @@ export type SubmissionStatus =
   | "revoked";
 export type RewardStatus = "pending" | "approved" | "paid" | "cancelled";
 export type EntityStatus = "active" | "inactive" | "blocked" | "pending";
+export type ApplicationStatus = "applied" | "selected" | "rejected" | "cancelled";
+export type VerificationStatus = "pending" | "verified" | "rejected";
 
 export type User = {
   id: string;
@@ -38,9 +40,13 @@ export type UserChannel = {
   userId: string;
   channelType: ChannelType;
   channelName: string;
-  channelUrl: string;
+  channelUrl?: string;
   handle: string;
   followerCount: number;
+  friendCount?: number;
+  verificationScreenshotUrl?: string;
+  verificationStatus: VerificationStatus;
+  verifiedAt?: string;
   isVerified: boolean;
   isActive: boolean;
   createdAt: string;
@@ -70,6 +76,8 @@ export type Campaign = {
   productName: string;
   startAt: string;
   endAt: string;
+  applyEndAt: string;
+  submissionDueAt: string;
   recruitLimit: number;
   baseReward: number;
   bonusRewardMax: number;
@@ -110,6 +118,19 @@ export type CampaignGuideline = {
   extraNote: string;
 };
 
+export type CampaignApplication = {
+  id: string;
+  campaignId: string;
+  userId: string;
+  channelType: ChannelType;
+  message: string;
+  status: ApplicationStatus;
+  appliedAt: string;
+  decidedAt?: string;
+  decidedBy?: string;
+  adminNote?: string;
+};
+
 export type Submission = {
   id: string;
   campaignId: string;
@@ -129,6 +150,19 @@ export type Submission = {
   extractedText?: string;
   autoCheckScore: number;
   autoCheckResult: AutoCheckResult;
+};
+
+export type UserPenalty = {
+  id: string;
+  userId: string;
+  submissionId?: string;
+  campaignId?: string;
+  reason: string;
+  daysLate: number;
+  suspensionDays: number;
+  startsAt: string;
+  endsAt: string;
+  createdAt: string;
 };
 
 export type SubmissionMetrics = {
@@ -184,6 +218,9 @@ export type CampaignView = Campaign & {
   formats: FormatType[];
   guideline: CampaignGuideline;
   submissionsCount: number;
+  applicationsCount: number;
+  selectedCount: number;
+  myApplicationStatus?: ApplicationStatus;
 };
 
 export type SubmissionView = Submission & {
@@ -192,4 +229,21 @@ export type SubmissionView = Submission & {
   user: User;
   reward?: Reward;
   metrics?: SubmissionMetrics;
+  penalty?: UserPenalty;
+};
+
+export type CampaignApplicationView = CampaignApplication & {
+  campaign: Campaign;
+  brand: Brand;
+  user: User;
+  channel?: UserChannel;
+  approvalRate: number;
+  activePenalty?: UserPenalty;
+};
+
+export type SubmissionEligibility = {
+  canSubmit: boolean;
+  reason: "selected" | "not_applied" | "pending" | "rejected" | "penalty" | "campaign_missing";
+  message: string;
+  penalty?: UserPenalty;
 };

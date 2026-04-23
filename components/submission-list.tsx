@@ -31,6 +31,7 @@ export function SubmissionList({ submissions, admin = false }: { submissions: Su
             <Badge>{formatLabels[submission.formatType]}</Badge>
             <Badge>점수 {submission.autoCheckScore}</Badge>
             <Badge>{submission.reward ? money(submission.reward.totalReward) : "보상 미정"}</Badge>
+            {submission.penalty ? <Badge active>{submission.penalty.suspensionDays}일 제한</Badge> : null}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-spread-ink/65">
             <span>제출 {shortDate(submission.submittedAt)}</span>

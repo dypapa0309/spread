@@ -25,7 +25,7 @@ export default async function AdminPage() {
           <MetricCard label="승인율" value={`${summary.approvalRate}%`} />
           <MetricCard label="보상 예정" value={money(summary.rewardPending)} />
           <MetricCard label="자동 승인" value={`${summary.autoApproved}`} />
-          <MetricCard label="수동 검수" value={`${summary.needsReview}`} />
+          <MetricCard label="선정 대기" value={`${summary.applicationPending}`} />
         </div>
         <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
           <div>

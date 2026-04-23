@@ -26,13 +26,18 @@ export default async function AdminCampaignsPage() {
                   <p className="text-sm text-spread-ink/60">{campaign.brand.name}</p>
                   <h2 className="text-xl font-black">{campaign.title}</h2>
                 </div>
-                <LinkButton href={`/admin/campaigns/${campaign.id}/edit`} variant="outline">수정</LinkButton>
+                <div className="flex flex-wrap gap-2">
+                  <LinkButton href={`/admin/campaigns/${campaign.id}/applications`} variant="outline">신청자</LinkButton>
+                  <LinkButton href={`/admin/campaigns/${campaign.id}/edit`} variant="outline">수정</LinkButton>
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge active={campaign.status === "open"}>{campaign.status}</Badge>
                 {campaign.channels.map((channel) => <Badge key={channel}>{channelLabels[channel]}</Badge>)}
                 {campaign.formats.map((format) => <Badge key={format}>{formatLabels[format]}</Badge>)}
                 <Badge>{money(campaign.baseReward)}</Badge>
+                <Badge>지원 {campaign.applicationsCount}명</Badge>
+                <Badge active>선정 {campaign.selectedCount}명</Badge>
               </div>
             </Card>
           ))}
