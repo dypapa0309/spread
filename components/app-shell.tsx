@@ -5,6 +5,7 @@ import { LogoutButton } from "@/components/auth/logout-button";
 
 const memberNav = [
   ["홈", "/member"],
+  ["SPREAD?", "/about"],
   ["캠페인", "/member/campaigns"],
   ["제출", "/member/submissions"],
   ["프로필", "/member/profile"]
