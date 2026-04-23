@@ -47,6 +47,54 @@ type BrandTab = "login" | "signup";
 
 export default function LoginPage() {
   const [portal, setPortal] = useState<Portal>("member");
+  const [checkingSession, setCheckingSession] = useState(!isMock);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isMock) return;
+
+    let active = true;
+
+    async function redirectSignedInUser() {
+      try {
+        const { createClient } = await import("@/supabase/client");
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!active) return;
+        if (!session) {
+          setCheckingSession(false);
+          return;
+        }
+
+        const role = await getCurrentUserRole("member");
+        if (!active) return;
+        router.replace(getRoleHomePath(role));
+        router.refresh();
+      } catch {
+        if (active) setCheckingSession(false);
+      }
+    }
+
+    redirectSignedInUser();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  if (checkingSession) {
+    return (
+      <AppShell role="public">
+        <Section className="grid min-h-[calc(100vh-64px)] place-items-center py-12">
+          <Card className="max-w-md text-center">
+            <p className="text-sm font-black text-spread-ink">로그인 상태 확인 중</p>
+            <p className="mt-2 text-sm text-spread-ink/60">이미 로그인되어 있으면 홈으로 이동합니다.</p>
+          </Card>
+        </Section>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell role="public">
@@ -111,7 +159,7 @@ function MemberLoginForm() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (isMock) { router.push("/member"); return; }
+    if (isMock) { router.replace("/member"); return; }
     setLoading(true); setError("");
     try {
       const { createClient } = await import("@/supabase/client");
@@ -125,7 +173,7 @@ function MemberLoginForm() {
         setLoading(false);
         return;
       }
-      router.push(role === "admin" ? "/admin" : role === "brand" ? "/brand" : "/member");
+      router.replace(getRoleHomePath(role));
       router.refresh();
     } catch { setError("로그인 중 오류가 발생했습니다."); setLoading(false); }
   }
@@ -210,7 +258,7 @@ function MemberSignupForm() {
         if (channelHandle) {
           await supabase.from("user_channels").insert({ user_id: data.user!.id, channel_type: channelType, channel_name: channelHandle, channel_url: channelUrl || null, handle: channelHandle, follower_count: isKakao ? 0 : Number(followerCount) || 0, friend_count: isKakao ? Number(friendCount) || 0 : null, verification_status: "pending", is_verified: false, is_active: true });
         }
-        router.push("/member"); router.refresh();
+        router.replace("/member"); router.refresh();
       } else { setDone(true); }
     } catch { setError("가입 중 오류가 발생했습니다."); setLoading(false); }
   }
@@ -290,7 +338,7 @@ function BrandLoginForm() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (isMock) { router.push("/brand"); return; }
+    if (isMock) { router.replace("/brand"); return; }
     setLoading(true); setError("");
     try {
       const { createClient } = await import("@/supabase/client");
@@ -304,7 +352,7 @@ function BrandLoginForm() {
         setLoading(false);
         return;
       }
-      router.push(role === "admin" ? "/admin" : role === "brand" ? "/brand" : "/member");
+      router.replace(getRoleHomePath(role));
       router.refresh();
     } catch { setError("로그인 중 오류가 발생했습니다."); setLoading(false); }
   }
@@ -346,6 +394,12 @@ async function getCurrentUserRole(fallback: Portal): Promise<AuthRole> {
 function isPortalRoleAllowed(portal: Portal, role: AuthRole) {
   if (role === "admin") return true;
   return portal === role;
+}
+
+function getRoleHomePath(role: AuthRole) {
+  if (role === "admin") return "/admin";
+  if (role === "brand") return "/brand";
+  return "/member";
 }
 
 async function logoutAfterRoleMismatch() {
