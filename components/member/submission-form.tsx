@@ -8,6 +8,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { PrivacyConsent } from "@/components/privacy-consent";
 import { channelLabels, experienceTypeLabels, formatLabels, shortDate, submissionStatusLabels } from "@/lib/labels";
 import { calculateDeadlinePenalty, determineSubmissionStatus, runSubmissionAutoCheck } from "@/services/submission-auto-check";
+import { getSubmissionChecklist } from "@/services/spread-service";
 import type { CampaignView, ChannelType, FormatType, SubmissionEligibility, SubmissionStatus } from "@/types/spread";
 
 export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignView; eligibility: SubmissionEligibility }) {
@@ -18,6 +19,7 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
   const [screenshotUrl, setScreenshotUrl] = useState("");
   const [postedAt, setPostedAt] = useState("");
   const [fulfillmentAgreed, setFulfillmentAgreed] = useState(false);
+  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({});
   const [result, setResult] = useState<{ score: number; status: SubmissionStatus; labels: string[] } | null>(null);
 
   const check = useMemo(
@@ -25,6 +27,11 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
     [campaign.id, channel, postUrl, postText, screenshotUrl]
   );
   const deadlinePenalty = calculateDeadlinePenalty(campaign.submissionDueAt, postedAt ? new Date(postedAt) : undefined);
+  const checklist = getSubmissionChecklist(channel).map((item) => ({
+    ...item,
+    checked: Boolean(checklistState[item.id])
+  }));
+  const checklistComplete = checklist.every((item) => !item.required || item.checked);
 
   if (!eligibility.canSubmit) {
     return (
@@ -52,10 +59,33 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
           onSubmit={(event) => {
             event.preventDefault();
             if (!fulfillmentAgreed) return;
+            if (!checklistComplete) return;
             const status = determineSubmissionStatus(check, campaign);
             setResult({ score: check.score, status, labels: check.issues.map((issue) => `${issue.label}: ${issue.severity}`) });
           }}
         >
+          <div className="rounded-spread border border-spread-ink/10 p-4">
+            <h2 className="text-lg font-black">제출 전 셀프검수</h2>
+            <p className="mt-1 text-sm text-spread-ink/60">
+              필수 조건을 먼저 확인하면 운영자 검수로 넘어가는 건을 줄일 수 있습니다.
+            </p>
+            <div className="mt-4 grid gap-2">
+              {checklist.map((item) => (
+                <label key={item.id} className="flex items-start gap-3 rounded-2xl border border-spread-ink/10 p-3 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={item.checked}
+                    onChange={(event) => setChecklistState((prev) => ({ ...prev, [item.id]: event.target.checked }))}
+                  />
+                  <span>
+                    <span className="font-semibold">{item.label}</span>
+                    {item.required ? <span className="ml-2 text-xs text-spread-point">필수</span> : null}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
           <div className="rounded-spread border border-spread-ink/10 p-4">
             <div className="mb-4 flex flex-wrap gap-2">
               <Badge active>{experienceTypeLabels[campaign.experienceType]}</Badge>
@@ -107,7 +137,7 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
               <Input type="datetime-local" value={postedAt} onChange={(event) => setPostedAt(event.target.value)} />
             </Field>
           </div>
-          <Button type="submit" disabled={!fulfillmentAgreed}>자동 체크 후 제출</Button>
+          <Button type="submit" disabled={!fulfillmentAgreed || !checklistComplete}>자동 체크 후 제출</Button>
         </form>
       </Card>
       <div className="grid gap-4 self-start">
@@ -130,10 +160,15 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
             </p>
           ) : null}
         </Card>
-        {result ? (
+          {result ? (
           <Card>
             <h2 className="text-xl font-black">제출 결과</h2>
             <p className="mt-2 text-sm text-spread-ink/65">예상 상태: {submissionStatusLabels[result.status]}</p>
+            {result.status === "auto_approved" ? (
+              <p className="mt-2 rounded-2xl border border-spread-point bg-spread-point/10 p-3 text-sm font-semibold text-spread-point">
+                자동검수 통과: 처리 완료 후보입니다.
+              </p>
+            ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
               {result.labels.map((label) => <Badge key={label}>{label}</Badge>)}
             </div>

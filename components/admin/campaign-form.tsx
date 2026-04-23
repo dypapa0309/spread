@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { channelLabels, formatLabels, industryOptions, localCategoryOptions, productCategoryOptions } from "@/lib/labels";
-import type { ChannelType, ExperienceType, FormatType } from "@/types/spread";
+import type { CampaignDraftPreset, ChannelType, ExperienceType, FormatType } from "@/types/spread";
 
 const channels: ChannelType[] = ["threads", "x", "wordpress", "kakao"];
 const formats: FormatType[] = ["one_line", "story", "comparison", "question", "recommendation", "debate"];
@@ -17,6 +17,37 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
   const [selectedChannels, setSelectedChannels] = useState<ChannelType[]>(["threads"]);
   const [selectedFormats, setSelectedFormats] = useState<FormatType[]>(["one_line"]);
   const [experienceType, setExperienceType] = useState<ExperienceType>("product");
+  const [presetTitle, setPresetTitle] = useState("");
+  const [offerTitle, setOfferTitle] = useState("");
+  const [offerDescription, setOfferDescription] = useState("");
+  const presets: CampaignDraftPreset[] = [
+    {
+      sourceCampaignId: "camp-1",
+      title: "Nova Desk 제품 배송 미션",
+      experienceType: "product",
+      industry: "디지털",
+      category: "가전/디지털",
+      offerTitle: "Nova Desk 스타터 키트",
+      offerDescription: "협업 기록 앱 30일 이용권과 데스크 노트 키트를 제공합니다.",
+      offerValueLabel: "제품 배송",
+      channels: ["threads"],
+      formats: ["one_line"],
+      keyMessage: "Nova Desk는 작은 반응을 빠르게 만들 수 있다."
+    },
+    {
+      sourceCampaignId: "camp-4",
+      title: "성수 로스터리 방문 체험",
+      experienceType: "local",
+      industry: "푸드",
+      category: "카페",
+      offerTitle: "성수 로스터리 커피 페어링",
+      offerDescription: "예약 시간에 방문해 시음과 원두 설명을 체험합니다.",
+      offerValueLabel: "방문 체험",
+      channels: ["kakao"],
+      formats: ["recommendation"],
+      keyMessage: "Mellow Bean은 작은 반응을 빠르게 만들 수 있다."
+    }
+  ];
   const [coverImageUrl, setCoverImageUrl] = useState(
     mode === "edit"
       ? "https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=1200&auto=format&fit=crop"
@@ -29,6 +60,31 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
       <Card>
         <h1 className="text-3xl font-black">{mode === "new" ? "캠페인 생성" : "캠페인 수정"}</h1>
         <div className="mt-6 grid gap-6">
+          {mode === "new" ? (
+            <FormSection title="이전 캠페인 불러오기">
+              <Field label="복제할 캠페인">
+                <Select
+                  defaultValue=""
+                  onChange={(event) => {
+                    const preset = presets.find((item) => item.sourceCampaignId === event.target.value);
+                    if (!preset) return;
+                    setPresetTitle(`${preset.title} 복사본`);
+                    setExperienceType(preset.experienceType);
+                    setOfferTitle(preset.offerTitle);
+                    setOfferDescription(preset.offerDescription);
+                    setSelectedChannels(preset.channels);
+                    setSelectedFormats(preset.formats);
+                  }}
+                >
+                  <option value="">선택 안 함</option>
+                  {presets.map((preset) => (
+                    <option key={preset.sourceCampaignId} value={preset.sourceCampaignId}>{preset.title}</option>
+                  ))}
+                </Select>
+              </Field>
+              <p className="text-xs text-spread-ink/60">기본 정보와 가이드라인만 복사됩니다. 날짜, 모집 수, 대표 이미지는 새로 확인하세요.</p>
+            </FormSection>
+          ) : null}
           <FormSection title="기본 정보">
             <Field label="대표 이미지">
               <div className="grid gap-3 sm:grid-cols-[1fr_1.2fr]">
@@ -61,7 +117,7 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
               <Input value={coverImageUrl} onChange={(event) => setCoverImageUrl(event.target.value)} placeholder="https://... 또는 Storage public URL" />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="캠페인명"><Input defaultValue={mode === "edit" ? "Threads 한줄 반응 실험" : ""} placeholder="미션 이름" /></Field>
+              <Field label="캠페인명"><Input value={presetTitle} onChange={(event) => setPresetTitle(event.target.value)} placeholder="미션 이름" /></Field>
               <Field label="제품/서비스명"><Input placeholder="제품 또는 체험 서비스" /></Field>
             </div>
             <Field label="요약"><Input placeholder="카드에 보일 짧은 설명" /></Field>
@@ -90,17 +146,17 @@ export function CampaignForm({ mode = "new" }: { mode?: "new" | "edit" }) {
             </div>
             {experienceType === "product" ? (
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="상품명"><Input placeholder="샘플팩 / 이용권 / 키트" /></Field>
+                <Field label="상품명"><Input value={offerTitle} onChange={(event) => setOfferTitle(event.target.value)} placeholder="샘플팩 / 이용권 / 키트" /></Field>
                 <Field label="제공 방식"><Input placeholder="제품 배송" /></Field>
-                <Field label="제공 구성"><Textarea placeholder="선정자에게 제공되는 제품 구성과 배송 안내" /></Field>
+                <Field label="제공 구성"><Textarea value={offerDescription} onChange={(event) => setOfferDescription(event.target.value)} placeholder="선정자에게 제공되는 제품 구성과 배송 안내" /></Field>
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="시/도"><Input placeholder="서울" /></Field>
                 <Field label="시군구"><Input placeholder="성동구" /></Field>
-                <Field label="장소명"><Input placeholder="브랜드 쇼룸" /></Field>
+                <Field label="장소명"><Input value={offerTitle} onChange={(event) => setOfferTitle(event.target.value)} placeholder="브랜드 쇼룸" /></Field>
                 <Field label="방문 주소"><Input placeholder="도로명 주소" /></Field>
-                <Field label="운영/예약 안내"><Textarea placeholder="방문 가능 시간, 예약 방식, 주의사항" /></Field>
+                <Field label="운영/예약 안내"><Textarea value={offerDescription} onChange={(event) => setOfferDescription(event.target.value)} placeholder="방문 가능 시간, 예약 방식, 주의사항" /></Field>
               </div>
             )}
           </FormSection>

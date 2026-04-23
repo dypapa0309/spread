@@ -2,12 +2,13 @@ import { AppShell } from "@/components/app-shell";
 import { MetricCard } from "@/components/metric-card";
 import { LinkButton } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
-import { listBrandCampaigns } from "@/services/spread-service";
+import { getBrandCampaignLimitState, listBrandCampaigns } from "@/services/spread-service";
 
 export default async function BrandPage() {
   const campaigns = await listBrandCampaigns();
   const applications = campaigns.reduce((sum, campaign) => sum + campaign.applicationsCount, 0);
   const selected = campaigns.reduce((sum, campaign) => sum + campaign.selectedCount, 0);
+  const limit = await getBrandCampaignLimitState();
 
   return (
     <AppShell role="brand">
@@ -24,6 +25,10 @@ export default async function BrandPage() {
           <MetricCard label="총 지원" value={`${applications}`} />
           <MetricCard label="총 선정" value={`${selected}`} />
         </div>
+        <Card className="p-4">
+          <p className="text-sm font-black">등록 한도</p>
+          <p className="mt-1 text-sm text-spread-ink/65">{limit.message}</p>
+        </Card>
         <Card>
           <h2 className="text-2xl font-black">최근 캠페인</h2>
           <div className="mt-4 grid gap-3">

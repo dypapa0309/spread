@@ -291,3 +291,25 @@ export type SubmissionEligibility = {
   message: string;
   penalty?: UserPenalty;
 };
+
+export type CampaignDraftPreset = {
+  sourceCampaignId: string;
+  title: string;
+  experienceType: ExperienceType;
+  industry: Industry;
+  category: CampaignCategory;
+  offerTitle: string;
+  offerDescription: string;
+  offerValueLabel: string;
+  channels: ChannelType[];
+  formats: FormatType[];
+  keyMessage: string;
+};
+
+export type SubmissionChecklistItem = {
+  id: string;
+  label: string;
+  required: boolean;
+  channelTypes: ChannelType[];
+  checked: boolean;
+};

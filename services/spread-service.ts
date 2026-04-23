@@ -13,9 +13,12 @@ import {
 } from "@/lib/mock-data";
 import type {
   ApplicationStatus,
+  CampaignDraftPreset,
   CampaignApplicationView,
   CampaignStatus,
+  ChannelType,
   FulfillmentInfo,
+  SubmissionChecklistItem,
   SubmissionStatus,
   UserPenalty
 } from "@/types/spread";
@@ -88,6 +91,45 @@ export async function listCampaignApplications(campaignId: string): Promise<Camp
 
 export async function listBrandCampaigns(brandId = "brand-1") {
   return getCampaignViews().filter((campaign) => campaign.brandId === brandId);
+}
+
+export async function getBrandCampaignLimitState(brandId = "brand-1") {
+  const brandCampaigns = await listBrandCampaigns(brandId);
+  const activeStatuses: CampaignStatus[] = ["draft", "open", "paused"];
+  const activeCount = brandCampaigns.filter((campaign) => activeStatuses.includes(campaign.status)).length;
+
+  return {
+    activeCount,
+    limit: 2,
+    canCreate: activeCount < 2,
+    message:
+      activeCount < 2
+        ? `동시 진행 캠페인 ${activeCount}/2개`
+        : "동시 진행 캠페인은 최대 2개까지 등록할 수 있습니다."
+  };
+}
+
+export async function getCampaignDraftPresets(brandId = "brand-1"): Promise<CampaignDraftPreset[]> {
+  const brandCampaigns = await listBrandCampaigns(brandId);
+
+  return brandCampaigns.map((campaign) => ({
+    sourceCampaignId: campaign.id,
+    title: campaign.title,
+    experienceType: campaign.experienceType,
+    industry: campaign.industry,
+    category: campaign.category,
+    offerTitle: campaign.offerTitle,
+    offerDescription: campaign.offerDescription,
+    offerValueLabel: campaign.offerValueLabel,
+    channels: campaign.channels,
+    formats: campaign.formats,
+    keyMessage: campaign.guideline.keyMessage
+  }));
+}
+
+export async function cloneCampaignDraft(sourceCampaignId: string): Promise<CampaignDraftPreset | null> {
+  const presets = await getCampaignDraftPresets();
+  return presets.find((preset) => preset.sourceCampaignId === sourceCampaignId) ?? null;
 }
 
 export async function listBrandCampaignApplications(campaignId: string, brandId = "brand-1") {
@@ -180,4 +222,68 @@ export function getApplicationCta(status?: ApplicationStatus, hasPenalty = Boole
   }
 
   return { label: "신청 취소됨", href: "/member/profile", disabled: true };
+}
+
+export function getSubmissionChecklist(channelType: ChannelType): SubmissionChecklistItem[] {
+  const common: SubmissionChecklistItem[] = [
+    {
+      id: "body",
+      label: "본문을 붙여넣었습니다",
+      required: true,
+      channelTypes: ["threads", "x", "wordpress", "kakao"],
+      checked: false
+    },
+    {
+      id: "retention",
+      label: "게시물 유지 시간을 확인했습니다",
+      required: true,
+      channelTypes: ["threads", "x", "wordpress", "kakao"],
+      checked: false
+    }
+  ];
+
+  if (channelType === "kakao") {
+    return [
+      {
+        id: "screenshot",
+        label: "KakaoTalk 피드 캡처를 준비했습니다",
+        required: true,
+        channelTypes: ["kakao"],
+        checked: false
+      },
+      {
+        id: "kakao-profile",
+        label: "닉네임/친구수 인증 정보와 같은 계정입니다",
+        required: true,
+        channelTypes: ["kakao"],
+        checked: false
+      },
+      ...common
+    ];
+  }
+
+  return [
+    {
+      id: "url",
+      label: "게시글 링크를 입력했습니다",
+      required: true,
+      channelTypes: ["threads", "x", "wordpress"],
+      checked: false
+    },
+    {
+      id: "public",
+      label: "공개 게시물 상태를 확인했습니다",
+      required: true,
+      channelTypes: ["threads", "x", "wordpress"],
+      checked: false
+    },
+    {
+      id: "required-tags",
+      label: "필수 해시태그/링크를 확인했습니다",
+      required: true,
+      channelTypes: ["threads", "x", "wordpress"],
+      checked: false
+    },
+    ...common
+  ];
 }

@@ -51,8 +51,12 @@ export function CampaignCard({ campaign }: { campaign: CampaignView }) {
           <p className="font-black">{campaign.offerValueLabel}</p>
         </div>
         <div>
-          <p className="text-xs text-spread-ink/55">지역</p>
-          <p className="font-black">{campaign.regionDistrict ?? "배송"}</p>
+          <p className="text-xs text-spread-ink/55">{campaign.experienceType === "product" ? "수령" : "지역"}</p>
+          <p className="font-black">
+            {campaign.experienceType === "product"
+              ? campaign.offerValueLabel
+              : `${campaign.regionProvince ?? ""} ${campaign.regionDistrict ?? ""}`.trim()}
+          </p>
         </div>
         <div>
           <p className="text-xs text-spread-ink/55">마감</p>

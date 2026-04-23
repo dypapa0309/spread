@@ -34,14 +34,27 @@ export function AdminSubmissions({ initialSubmissions }: { initialSubmissions: S
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl font-black">제출물 관리</h1>
-          <Select className="w-44" value={status} onChange={(event) => setStatus(event.target.value as SubmissionStatus | "all")}>
-            <option value="all">전체</option>
-            <option value="needs_review">검수 필요</option>
-            <option value="auto_approved">자동 승인</option>
-            <option value="auto_rejected">자동 반려</option>
-            <option value="approved">승인</option>
-            <option value="rejected">반려</option>
-          </Select>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() =>
+                setLocalStatus((prev) => ({
+                  ...prev,
+                  ...Object.fromEntries(initialSubmissions.filter((item) => item.status === "auto_approved").map((item) => [item.id, "completed"]))
+                }))
+              }
+            >
+              자동승인 일괄 완료
+            </Button>
+            <Select className="w-44" value={status} onChange={(event) => setStatus(event.target.value as SubmissionStatus | "all")}>
+              <option value="all">전체</option>
+              <option value="needs_review">검수 필요</option>
+              <option value="auto_approved">자동 승인</option>
+              <option value="auto_rejected">자동 반려</option>
+              <option value="approved">승인</option>
+              <option value="rejected">반려</option>
+            </Select>
+          </div>
         </div>
         <div className="mt-5 grid gap-3">
           {submissions.map((submission) => (
