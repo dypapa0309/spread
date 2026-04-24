@@ -46,7 +46,7 @@ export default function PrivacyPage() {
               </div>
               <div>
                 <p className="font-semibold text-spread-ink">서비스 이용 중 자동 수집</p>
-                <p>접속 IP, 브라우저 정보, 서비스 이용 기록, 쿠키</p>
+                <p>브라우저 정보, 접속 경로, 리퍼러, 쿠키 기반 방문 식별자, 서비스 이용 기록</p>
               </div>
             </div>
           </section>
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
               <li>① 회원 가입 및 관리: 본인 확인, 중복 가입 방지, 계정 관리</li>
               <li>② 캠페인 운영: 체험단 신청·선정·제출 관리, 혜택 제공</li>
               <li>③ 제품/서비스 배송 및 방문 예약 처리</li>
-              <li>④ 서비스 품질 개선 및 통계 분석</li>
+              <li>④ 서비스 품질 개선 및 내부 이용 분석 (방문, 신청, 제출 흐름 분석 포함)</li>
               <li>⑤ 서비스 관련 고지사항 전달 및 민원 처리</li>
             </ul>
           </section>
@@ -69,7 +69,8 @@ export default function PrivacyPage() {
               <li>① 회원 정보: 회원 탈퇴 시까지</li>
               <li>② 캠페인 참여 정보 (신청, 제출 내역): 캠페인 종료 후 1년</li>
               <li>③ 배송·방문 이행 정보(개인정보): 이행 완료 후 6개월</li>
-              <li>④ 관련 법령에 따른 보존 의무가 있는 경우 해당 기간
+              <li>④ 내부 서비스 분석 이벤트 및 세션 정보: 수집일로부터 12개월</li>
+              <li>⑤ 관련 법령에 따른 보존 의무가 있는 경우 해당 기간
                 <ul className="mt-2 grid gap-1 pl-4">
                   <li>- 전자상거래 관련: 계약·청약 철회 기록 5년, 대금 결제 기록 5년</li>
                   <li>- 소비자 불만·분쟁 처리 기록: 3년</li>
@@ -126,7 +127,7 @@ export default function PrivacyPage() {
             <h2 className="mb-3 text-base font-black text-spread-ink">8. 쿠키(Cookie) 운영</h2>
             <ul className="grid gap-2 pl-4">
               <li>① 회사는 이용자의 편의를 위해 쿠키를 사용합니다.</li>
-              <li>② 쿠키는 세션 유지 및 서비스 이용 분석 목적으로 사용됩니다.</li>
+              <li>② 쿠키와 유사 식별자는 세션 유지, 익명 방문 식별, 서비스 이용 분석 목적으로 사용됩니다.</li>
               <li>③ 이용자는 브라우저 설정을 통해 쿠키 저장을 거부할 수 있으나, 일부 서비스 이용이 제한될 수 있습니다.</li>
             </ul>
           </section>

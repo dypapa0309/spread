@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { EventOnMount } from "@/components/analytics/event-on-mount";
 import { AppShell } from "@/components/app-shell";
 import { SubmissionForm } from "@/components/member/submission-form";
 import { Section } from "@/components/ui/card";
@@ -16,6 +17,7 @@ export default async function SubmitPage({ params }: { params: Promise<{ campaig
   return (
     <AppShell role="member">
       <Section>
+        <EventOnMount eventName="submission_started" campaignId={campaign.id} metadata={{ channels: campaign.channels }} />
         <SubmissionForm campaign={campaign} eligibility={eligibility} />
       </Section>
     </AppShell>

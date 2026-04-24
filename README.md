@@ -22,6 +22,7 @@ npm run dev
 - `/member/submissions`: 내 제출 내역
 - `/member/profile`: 마이페이지
 - `/admin`: 운영 대시보드
+- `/admin/analytics`: 자체 분석 어드민
 - `/admin/campaigns`: 캠페인 관리
 - `/admin/campaigns/new`: 캠페인 생성
 - `/admin/campaigns/[id]/edit`: 캠페인 수정
@@ -51,6 +52,8 @@ types/
 - `lib/mock-data.ts`: 사용자, 브랜드, 제품형/지역형 캠페인 6개, 신청/선정/처리정보 샘플
 - `services/submission-auto-check.ts`: URL 정규화, 채널 검사, 중복 검사, 키워드/금지 표현/길이 검사, 상태 분기
 - `services/spread-service.ts`: mock mode 서비스 함수. Supabase real mode로 교체하기 쉬운 경계
+- `services/analytics-service.ts`: 익명 방문/세션/이벤트 저장 및 분석 집계
+- `app/api/analytics/events/route.ts`: 내부 이벤트 수집 API
 
 ## 제품/지역 캠페인 흐름
 
@@ -70,8 +73,15 @@ types/
 ## 광고주 운영
 
 - 광고주는 `draft`, `open`, `paused` 상태 캠페인을 동시에 최대 2개까지 운영할 수 있습니다.
-- 기존 캠페인은 새 캠페인 생성 화면에서 불러와 기본 정보, 체험 정보, 채널, 포맷, 가이드라인을 복사할 수 있습니다.
+- 기존 캠페인은 새 캠페인 생성 화면에서 불러와 기본 정보, 체험 정보, 채널, 가이드라인을 복사할 수 있습니다.
 - 제출 폼은 채널별 셀프검수 체크리스트를 먼저 통과해야 제출할 수 있습니다.
+
+## 내부 분석
+
+- `/admin/analytics`에서 가입, 방문, 활성, 신청, 선정, 제출, 상위 캠페인/페이지, 코호트 리텐션을 확인할 수 있습니다.
+- Google Analytics 없이 `analytics_visitors`, `analytics_sessions`, `analytics_events` 테이블로 직접 수집합니다.
+- 익명 방문자는 쿠키 기반 `visitor_id`, `session_id`로 추적하고 로그인 시 `user_id`와 연결합니다.
+- 원본 이벤트 보관 기준은 12개월입니다.
 
 ## Supabase 준비
 
@@ -90,6 +100,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 - `supabase/server.ts`: 서버 컴포넌트/서버 액션용 server client
 - `supabase/database.types.ts`: Supabase 타입 placeholder
 - `supabase/schema.sql`: MVP 테이블 생성 초안
+- `supabase/analytics-schema.sql`: 내부 분석 테이블/인덱스/RLS 추가 SQL
 - Storage bucket: 캠페인 대표 이미지는 `campaign-covers`, 채널 인증은 `channel-verifications`, 개인정보성 처리 파일은 별도 private bucket 사용을 권장합니다.
 - `services/campaign-assets.ts`: 대표 이미지 업로드 후 public URL을 반환하는 연결 초안
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/supabase/admin";
 import { createClient } from "@/supabase/server";
+import { trackServerAnalyticsEvent } from "@/services/analytics-service";
 import { getChannelMissingFields } from "@/services/channel-validation";
 import type { ChannelType, UserChannel } from "@/types/spread";
 
@@ -144,6 +145,19 @@ export async function POST(request: Request) {
     if (error) {
       return NextResponse.json({ ok: false, message: `신청 저장 실패: ${error.message}` }, { status: 400 });
     }
+
+    await Promise.all(
+      requiredChannels.map((channelType) =>
+        trackServerAnalyticsEvent({
+          eventName: "campaign_applied",
+          path: `/member/apply/${campaignId}`,
+          campaignId,
+          channelType,
+          userId: authUser.id,
+          userRole: "member"
+        })
+      )
+    );
 
     return NextResponse.json({
       ok: true,

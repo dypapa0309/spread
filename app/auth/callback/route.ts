@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSupabaseEnv, hasSupabaseEnv } from "@/supabase/env";
 import { createAdminClient } from "@/supabase/admin";
+import { trackServerAnalyticsEvent } from "@/services/analytics-service";
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -98,6 +99,13 @@ export async function GET(request: NextRequest) {
         is_active: true
       });
     }
+
+    await trackServerAnalyticsEvent({
+      eventName: "sign_up_completed",
+      path: "/auth/callback",
+      userId: user.id,
+      userRole: role
+    });
   }
 
   // role에 따라 리다이렉트

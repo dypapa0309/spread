@@ -22,6 +22,7 @@ export default async function AdminPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <LinkButton href="/admin/analytics" variant="outline">분석 보기</LinkButton>
             <LinkButton href="/admin/submissions" variant="outline">제출물 검수</LinkButton>
             <LinkButton href="/admin/campaigns/new">캠페인 생성</LinkButton>
           </div>

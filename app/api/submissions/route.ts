@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/supabase/admin";
 import { createClient } from "@/supabase/server";
+import { trackServerAnalyticsEvent } from "@/services/analytics-service";
 import { normalizeSubmissionUrl, validateSubmissionUrl } from "@/services/submission-auto-check";
 import type { ChannelType, SubmissionStatus } from "@/types/spread";
 
@@ -120,6 +121,19 @@ export async function POST(request: Request) {
 
     const { data, error } = await adminSupabase.from("submissions").insert(rows).select("id");
     if (error) return NextResponse.json({ ok: false, message: `제출 저장 실패: ${error.message}` }, { status: 400 });
+
+    await Promise.all(
+      submissions.map((item) =>
+        trackServerAnalyticsEvent({
+          eventName: "submission_completed",
+          path: `/member/submit/${campaignId}`,
+          campaignId,
+          channelType: item.channelType,
+          userId: user.id,
+          userRole: "member"
+        })
+      )
+    );
 
     return NextResponse.json({ ok: true, submissionIds: (data ?? []).map((item) => item.id), message: "제출이 저장되었습니다." });
   } catch (error) {

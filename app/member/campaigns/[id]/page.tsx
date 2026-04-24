@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { EventOnMount } from "@/components/analytics/event-on-mount";
 import { AppShell } from "@/components/app-shell";
 import { CampaignDetail } from "@/components/member/campaign-detail";
 import { Section } from "@/components/ui/card";
@@ -15,6 +16,12 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
   return (
     <AppShell role="member">
       <Section>
+        <EventOnMount
+          eventName="campaign_viewed"
+          campaignId={campaign.id}
+          channelType={campaign.channels.length === 1 ? campaign.channels[0] : undefined}
+          metadata={{ channels: campaign.channels }}
+        />
         <CampaignDetail campaign={campaign} activePenalty={activePenalty} />
       </Section>
     </AppShell>

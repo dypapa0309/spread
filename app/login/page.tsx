@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { trackClientEvent } from "@/lib/analytics-client";
 import { uploadChannelVerificationImage } from "@/services/channel-assets";
 import { hasSupabaseEnv } from "@/supabase/env";
 
@@ -174,6 +175,7 @@ function MemberLoginForm() {
         setLoading(false);
         return;
       }
+      await trackClientEvent({ eventName: "login_completed", path: "/login", userRole: role });
       router.replace(getRoleHomePath(role));
       router.refresh();
     } catch { setError("로그인 중 오류가 발생했습니다."); setLoading(false); }
@@ -294,6 +296,7 @@ function MemberSignupForm() {
             is_active: true
           });
         }
+        await trackClientEvent({ eventName: "sign_up_completed", path: "/login", userRole: "member" });
         router.replace("/member"); router.refresh();
       } else { setDone(true); }
     } catch { setError("가입 중 오류가 발생했습니다."); setLoading(false); }
@@ -398,6 +401,7 @@ function BrandLoginForm() {
         setLoading(false);
         return;
       }
+      await trackClientEvent({ eventName: "login_completed", path: "/login", userRole: role });
       router.replace(getRoleHomePath(role));
       router.refresh();
     } catch { setError("로그인 중 오류가 발생했습니다."); setLoading(false); }

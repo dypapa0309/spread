@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/supabase/admin";
 import { createClient } from "@/supabase/server";
+import { trackServerAnalyticsEvent } from "@/services/analytics-service";
 import { getChannelMissingFields } from "@/services/channel-validation";
 import type { ChannelType, UserChannel } from "@/types/spread";
 
@@ -82,6 +83,14 @@ export async function POST(request: Request) {
     if (error || !data) {
       return NextResponse.json({ ok: false, message: `채널 저장 실패: ${error?.message ?? "알 수 없는 오류"}` }, { status: 400 });
     }
+
+    await trackServerAnalyticsEvent({
+      eventName: "channel_saved",
+      path: "/member/profile",
+      channelType,
+      userId: user.id,
+      userRole: "member"
+    });
 
     return NextResponse.json({ ok: true, channelId: data.id, message: "채널 정보가 저장되었습니다." });
   } catch (error) {

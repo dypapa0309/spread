@@ -1,7 +1,20 @@
 import * as mock from "@/lib/mock-data";
+import {
+  getAnalyticsDashboardData as getLiveAnalyticsDashboardData,
+  getAnalyticsErrorMessage as getLiveAnalyticsErrorMessage
+} from "@/services/analytics-service";
 import * as real from "@/services/supabase-service";
 import { hasSupabaseEnv } from "@/supabase/env";
 import type {
+  AnalyticsActivityFeedRow,
+  AnalyticsDashboardData,
+  AnalyticsEventName,
+  AnalyticsFilters,
+  AnalyticsRetentionPoint,
+  AnalyticsTimeSeriesPoint,
+  AnalyticsTopCampaignRow,
+  AnalyticsTopPageRow,
+  AnalyticsUserActivityRow,
   ApplicationStatus,
   CampaignApplicationView,
   CampaignDraftPreset,
@@ -19,6 +32,456 @@ import type {
 
 // Supabase 환경 변수가 있으면 real 모드, 없으면 mock 모드
 const isLive = hasSupabaseEnv();
+
+type MockAnalyticsEvent = {
+  id: string;
+  eventName: AnalyticsEventName;
+  visitorId: string;
+  sessionId: string;
+  userId?: string;
+  userRole?: User["role"];
+  path: string;
+  campaignId?: string;
+  channelType?: ChannelType;
+  metadata?: Record<string, unknown>;
+  occurredAt: string;
+};
+
+function startOfDay(date: Date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function addDays(date: Date, days: number) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function asPercent(numerator: number, denominator: number) {
+  return denominator > 0 ? Math.round((numerator / denominator) * 100) : 0;
+}
+
+function buildDateBuckets(days: number) {
+  const today = startOfDay(new Date());
+  return Array.from({ length: days }, (_, index) => {
+    const date = addDays(today, -(days - index - 1));
+    return date.toISOString().slice(0, 10);
+  });
+}
+
+function withinRange(value: string, start: Date) {
+  return new Date(value).getTime() >= start.getTime();
+}
+
+function matchesAnalyticsRole(role: User["role"] | undefined, filter: AnalyticsFilters["role"]) {
+  if (!filter || filter === "all") return true;
+  return role === filter;
+}
+
+function matchesAnalyticsChannel(channelType: ChannelType | undefined, filter: AnalyticsFilters["channel"]) {
+  if (!filter || filter === "all") return true;
+  return channelType === filter;
+}
+
+function matchesAnalyticsCampaign(campaignId: string | undefined, filter: AnalyticsFilters["campaignId"]) {
+  if (!filter || filter === "all") return true;
+  return campaignId === filter;
+}
+
+function filterMockAnalyticsEvents(events: MockAnalyticsEvent[], filters: AnalyticsFilters) {
+  const start = addDays(startOfDay(new Date()), -(filters.days - 1));
+  return events.filter((event) =>
+    withinRange(event.occurredAt, start) &&
+    matchesAnalyticsRole(event.userRole, filters.role) &&
+    matchesAnalyticsChannel(event.channelType, filters.channel) &&
+    matchesAnalyticsCampaign(event.campaignId, filters.campaignId)
+  );
+}
+
+function createMockAnalyticsEvents() {
+  const events: MockAnalyticsEvent[] = [];
+  const baseVisitors = new Map<string, string>();
+  const basePathByRole: Record<User["role"], string> = {
+    member: "/member",
+    brand: "/brand",
+    admin: "/admin"
+  };
+
+  mock.users.forEach((user, index) => {
+    const visitorId = `visitor-${user.id}`;
+    baseVisitors.set(user.id, visitorId);
+
+    events.push({
+      id: `signup-${user.id}`,
+      eventName: "sign_up_completed",
+      visitorId,
+      sessionId: `session-signup-${user.id}`,
+      userId: user.id,
+      userRole: user.role,
+      path: "/login",
+      occurredAt: user.createdAt
+    });
+
+    events.push({
+      id: `login-${user.id}`,
+      eventName: "login_completed",
+      visitorId,
+      sessionId: `session-login-${user.id}`,
+      userId: user.id,
+      userRole: user.role,
+      path: "/login",
+      occurredAt: addDays(new Date(user.createdAt), 1).toISOString()
+    });
+
+    for (let offset = 0; offset < 12; offset += 1) {
+      const activeDate = addDays(new Date("2026-04-24T00:00:00.000Z"), -offset);
+      if (activeDate.getTime() < new Date(user.createdAt).getTime()) continue;
+      const sessionId = `session-${user.id}-${offset}`;
+      events.push({
+        id: `view-home-${user.id}-${offset}`,
+        eventName: "page_view",
+        visitorId,
+        sessionId,
+        userId: user.id,
+        userRole: user.role,
+        path: basePathByRole[user.role],
+        occurredAt: new Date(activeDate.getTime() + (9 + index) * 60 * 60 * 1000).toISOString()
+      });
+
+      if (user.role === "member" && offset % 2 === 0) {
+        events.push({
+          id: `view-campaign-list-${user.id}-${offset}`,
+          eventName: "page_view",
+          visitorId,
+          sessionId,
+          userId: user.id,
+          userRole: user.role,
+          path: "/member/campaigns",
+          occurredAt: new Date(activeDate.getTime() + (10 + index) * 60 * 60 * 1000).toISOString()
+        });
+      }
+    }
+  });
+
+  mock.userChannels.forEach((channel, index) => {
+    const user = mock.users.find((candidate) => candidate.id === channel.userId);
+    if (!user) return;
+    events.push({
+      id: `channel-${channel.id}`,
+      eventName: "channel_saved",
+      visitorId: baseVisitors.get(user.id) ?? `visitor-${user.id}`,
+      sessionId: `session-channel-${user.id}-${index}`,
+      userId: user.id,
+      userRole: user.role,
+      path: "/member/profile",
+      channelType: channel.channelType,
+      occurredAt: addDays(new Date(channel.createdAt), 1).toISOString()
+    });
+  });
+
+  mock.campaignApplications.forEach((application, index) => {
+    const user = mock.users.find((candidate) => candidate.id === application.userId);
+    const campaign = mock.campaigns.find((candidate) => candidate.id === application.campaignId);
+    if (!user || !campaign) return;
+    const visitorId = baseVisitors.get(user.id) ?? `visitor-${user.id}`;
+    const campaignPath = `/member/campaigns/${campaign.id}`;
+    const viewedAt = new Date(new Date(application.appliedAt).getTime() - 20 * 60 * 1000).toISOString();
+
+    events.push({
+      id: `campaign-page-view-${application.id}`,
+      eventName: "page_view",
+      visitorId,
+      sessionId: `session-application-${application.id}`,
+      userId: user.id,
+      userRole: user.role,
+      path: campaignPath,
+      occurredAt: viewedAt
+    });
+
+    events.push({
+      id: `campaign-view-${application.id}`,
+      eventName: "campaign_viewed",
+      visitorId,
+      sessionId: `session-application-${application.id}`,
+      userId: user.id,
+      userRole: user.role,
+      path: campaignPath,
+      campaignId: campaign.id,
+        channelType: application.channelType,
+      metadata: { channels: [application.channelType] },
+      occurredAt: new Date(new Date(application.appliedAt).getTime() - 10 * 60 * 1000).toISOString()
+    });
+
+    events.push({
+      id: `campaign-applied-${application.id}`,
+      eventName: "campaign_applied",
+      visitorId,
+      sessionId: `session-application-${application.id}`,
+      userId: user.id,
+      userRole: user.role,
+      path: `/member/apply/${campaign.id}`,
+      campaignId: campaign.id,
+      channelType: application.channelType,
+      occurredAt: application.appliedAt
+    });
+
+    if (application.status === "selected" && application.decidedAt) {
+      events.push({
+        id: `application-selected-${application.id}`,
+        eventName: "application_selected",
+        visitorId,
+        sessionId: `session-application-selected-${application.id}`,
+        userId: user.id,
+        userRole: user.role,
+        path: `/admin/campaigns/${campaign.id}/applications`,
+        campaignId: campaign.id,
+        channelType: application.channelType,
+        occurredAt: application.decidedAt
+      });
+    }
+  });
+
+  mock.getSubmissionViews().forEach((submission, index) => {
+    events.push({
+      id: `submission-started-${submission.id}`,
+      eventName: "submission_started",
+      visitorId: baseVisitors.get(submission.userId) ?? `visitor-${submission.userId}`,
+      sessionId: `session-submission-${submission.id}`,
+      userId: submission.userId,
+      userRole: submission.user.role,
+      path: `/member/submit/${submission.campaignId}`,
+      campaignId: submission.campaignId,
+      channelType: submission.channelType,
+      occurredAt: new Date(new Date(submission.submittedAt).getTime() - 90 * 60 * 1000).toISOString()
+    });
+
+    events.push({
+      id: `submission-completed-${submission.id}`,
+      eventName: "submission_completed",
+      visitorId: baseVisitors.get(submission.userId) ?? `visitor-${submission.userId}`,
+      sessionId: `session-submission-${submission.id}`,
+      userId: submission.userId,
+      userRole: submission.user.role,
+      path: `/member/submit/${submission.campaignId}`,
+      campaignId: submission.campaignId,
+      channelType: submission.channelType,
+      occurredAt: submission.submittedAt
+    });
+
+    events.push({
+      id: `profile-view-${submission.id}`,
+      eventName: "page_view",
+      visitorId: baseVisitors.get(submission.userId) ?? `visitor-${submission.userId}`,
+      sessionId: `session-submission-${submission.id}`,
+      userId: submission.userId,
+      userRole: submission.user.role,
+      path: "/member/profile",
+      occurredAt: new Date(new Date(submission.submittedAt).getTime() + 20 * 60 * 1000).toISOString()
+    });
+  });
+
+  Array.from({ length: 18 }).forEach((_, index) => {
+    const occurredAt = new Date(new Date("2026-04-24T00:00:00.000Z").getTime() - index * 8 * 60 * 60 * 1000).toISOString();
+    events.push({
+      id: `anon-home-${index}`,
+      eventName: "page_view",
+      visitorId: `visitor-anon-${index % 6}`,
+      sessionId: `session-anon-home-${index}`,
+      path: index % 3 === 0 ? "/" : index % 3 === 1 ? "/login" : "/member/campaigns",
+      occurredAt
+    });
+  });
+
+  return events.sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
+}
+
+function buildMockAnalyticsDashboard(filters: AnalyticsFilters): AnalyticsDashboardData {
+  const events = filterMockAnalyticsEvents(createMockAnalyticsEvents(), filters);
+  const users = mock.users;
+  const campaigns = mock.getCampaignViews();
+  const usersCreatedAt = users.map((user) => user.createdAt);
+  const today = startOfDay(new Date());
+  const last7 = addDays(today, -6);
+  const last30 = addDays(today, -29);
+  const pageViews = events.filter((event) => event.eventName === "page_view");
+  const applications = events.filter((event) => event.eventName === "campaign_applied");
+  const submissions = events.filter((event) => event.eventName === "submission_completed");
+  const signedUp = events.filter((event) => event.eventName === "sign_up_completed");
+  const userEvents = events.filter((event) => event.userId);
+  const usersById = new Map(users.map((user) => [user.id, user]));
+
+  const timeSeries: AnalyticsTimeSeriesPoint[] = buildDateBuckets(filters.days).map((date) => {
+    const dayEvents = events.filter((event) => event.occurredAt.slice(0, 10) === date);
+    return {
+      date,
+      visitors: new Set(dayEvents.map((event) => event.visitorId)).size,
+      sessions: new Set(dayEvents.map((event) => event.sessionId)).size,
+      pageViews: dayEvents.filter((event) => event.eventName === "page_view").length,
+      signUps: usersCreatedAt.filter((createdAt) => createdAt.slice(0, 10) === date).length,
+      applications: dayEvents.filter((event) => event.eventName === "campaign_applied").length,
+      selected: dayEvents.filter((event) => event.eventName === "application_selected").length,
+      submissions: dayEvents.filter((event) => event.eventName === "submission_completed").length
+    };
+  });
+
+  const funnel = [
+    { key: "visit", label: "방문", count: new Set(pageViews.map((event) => event.visitorId)).size },
+    { key: "signup", label: "가입", count: signedUp.length },
+    { key: "campaign_view", label: "캠페인 조회", count: events.filter((event) => event.eventName === "campaign_viewed").length },
+    { key: "apply", label: "신청", count: applications.length },
+    { key: "selected", label: "선정", count: events.filter((event) => event.eventName === "application_selected").length },
+    { key: "submit", label: "제출 완료", count: submissions.length }
+  ].map((step, index, steps) => ({
+    ...step,
+    conversionFromPrevious: index === 0 ? undefined : asPercent(step.count, steps[index - 1].count)
+  }));
+
+  const topPages: AnalyticsTopPageRow[] = Array.from(
+    pageViews.reduce((map, event) => {
+      const current = map.get(event.path) ?? { path: event.path, routePattern: event.path, views: 0, visitors: new Set<string>() };
+      current.views += 1;
+      current.visitors.add(event.visitorId);
+      map.set(event.path, current);
+      return map;
+    }, new Map<string, { path: string; routePattern: string; views: number; visitors: Set<string> }>())
+  )
+    .map(([, value]) => ({
+      path: value.path,
+      routePattern: value.routePattern,
+      views: value.views,
+      uniqueVisitors: value.visitors.size,
+      avgViewsPerVisitor: value.visitors.size ? Math.round((value.views / value.visitors.size) * 10) / 10 : 0
+    }))
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 8);
+
+  const topCampaigns: AnalyticsTopCampaignRow[] = campaigns
+    .map((campaign) => {
+      const campaignEvents = events.filter((event) => event.campaignId === campaign.id);
+      const views = campaignEvents.filter((event) => event.eventName === "campaign_viewed").length;
+      const applicationCount = campaignEvents.filter((event) => event.eventName === "campaign_applied").length;
+      const submissionCount = campaignEvents.filter((event) => event.eventName === "submission_completed").length;
+      return {
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        brandName: campaign.brand.name,
+        views,
+        applications: applicationCount,
+        submissions: submissionCount,
+        applicationConversionRate: asPercent(applicationCount, views),
+        submissionConversionRate: asPercent(submissionCount, applicationCount)
+      };
+    })
+    .filter((campaign) => campaign.views || campaign.applications || campaign.submissions)
+    .sort((a, b) => b.views - a.views)
+    .slice(0, 8);
+
+  const channelActivity = (["threads", "x", "wordpress", "kakao"] as ChannelType[]).map((channelType) => ({
+    channelType,
+    pageViews: events.filter((event) => event.eventName === "campaign_viewed" && event.channelType === channelType).length,
+    applications: events.filter((event) => event.eventName === "campaign_applied" && event.channelType === channelType).length,
+    submissions: events.filter((event) => event.eventName === "submission_completed" && event.channelType === channelType).length
+  }));
+
+  const recentActivity: AnalyticsActivityFeedRow[] = events.slice(0, 20).map((event) => ({
+    id: event.id,
+    occurredAt: event.occurredAt,
+    eventName: event.eventName,
+    label: {
+      page_view: "페이지 조회",
+      sign_up_completed: "회원가입 완료",
+      login_completed: "로그인 완료",
+      campaign_viewed: "캠페인 조회",
+      campaign_applied: "캠페인 신청",
+      application_selected: "신청 선정",
+      submission_started: "제출 시작",
+      submission_completed: "제출 완료",
+      channel_saved: "채널 저장"
+    }[event.eventName],
+    path: event.path,
+    nickname: event.userId ? usersById.get(event.userId)?.nickname : undefined,
+    userRole: event.userRole
+  }));
+
+  const activeUsers: AnalyticsUserActivityRow[] = Array.from(
+    userEvents
+      .filter((event) => withinRange(event.occurredAt, last7))
+      .reduce((map, event) => {
+        const key = event.userId as string;
+        const current = map.get(key) ?? [];
+        current.push(event);
+        map.set(key, current);
+        return map;
+      }, new Map<string, MockAnalyticsEvent[]>())
+  )
+    .map(([userId, userEventList]) => {
+      const lastEvent = [...userEventList].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())[0];
+      const user = usersById.get(userId);
+      return {
+        userId,
+        nickname: user?.nickname ?? "알 수 없음",
+        role: user?.role ?? "member",
+        lastSeenAt: lastEvent.occurredAt,
+        pageViews: userEventList.filter((event) => event.eventName === "page_view").length,
+        applications: userEventList.filter((event) => event.eventName === "campaign_applied").length,
+        submissions: userEventList.filter((event) => event.eventName === "submission_completed").length,
+        lastActionLabel: recentActivity.find((row) => row.id === lastEvent.id)?.label ?? "활동"
+      };
+    })
+    .sort((a, b) => new Date(b.lastSeenAt).getTime() - new Date(a.lastSeenAt).getTime())
+    .slice(0, 12);
+
+  const retention: AnalyticsRetentionPoint[] = users
+    .slice()
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 8)
+    .map((user) => {
+      const userActivity = userEvents.filter((event) => event.userId === user.id);
+      const created = new Date(user.createdAt).getTime();
+      const seenDay = (targetDay: number) =>
+        userActivity.some((event) => {
+          const diffDays = Math.floor((new Date(event.occurredAt).getTime() - created) / (24 * 60 * 60 * 1000));
+          return diffDays === targetDay;
+        });
+      return {
+        cohortDate: user.createdAt.slice(0, 10),
+        cohortSize: 1,
+        day1Rate: seenDay(1) ? 100 : 0,
+        day7Rate: seenDay(7) ? 100 : 0,
+        day30Rate: seenDay(30) ? 100 : 0
+      };
+    });
+
+  return {
+    filters,
+    summary: {
+      totalUsers: users.length,
+      newUsersToday: usersCreatedAt.filter((createdAt) => withinRange(createdAt, today)).length,
+      newUsers7d: usersCreatedAt.filter((createdAt) => withinRange(createdAt, last7)).length,
+      newUsers30d: usersCreatedAt.filter((createdAt) => withinRange(createdAt, last30)).length,
+      visitorsToday: new Set(events.filter((event) => withinRange(event.occurredAt, today)).map((event) => event.visitorId)).size,
+      sessionsToday: new Set(events.filter((event) => withinRange(event.occurredAt, today)).map((event) => event.sessionId)).size,
+      pageViewsToday: pageViews.filter((event) => withinRange(event.occurredAt, today)).length,
+      dau: new Set(userEvents.filter((event) => withinRange(event.occurredAt, today)).map((event) => event.userId)).size,
+      wau: new Set(userEvents.filter((event) => withinRange(event.occurredAt, last7)).map((event) => event.userId)).size,
+      mau: new Set(userEvents.filter((event) => withinRange(event.occurredAt, last30)).map((event) => event.userId)).size,
+      activeUsers7d: new Set(userEvents.filter((event) => withinRange(event.occurredAt, last7)).map((event) => event.userId)).size,
+      applicationConversionRate: asPercent(applications.length, pageViews.length),
+      submissionConversionRate: asPercent(submissions.length, applications.length)
+    },
+    timeSeries,
+    funnel,
+    topCampaigns,
+    topPages,
+    channelActivity,
+    activeUsers,
+    recentActivity,
+    retention,
+    campaigns: campaigns.map((campaign) => ({ id: campaign.id, title: campaign.title }))
+  };
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Current user
@@ -291,6 +754,25 @@ export async function getAdminSummary() {
     recentSubmissions: submissions.slice(0, 6),
     recentCampaigns: campaigns.slice(0, 5)
   };
+}
+
+export function getDefaultAnalyticsFilters(input?: Partial<AnalyticsFilters>): AnalyticsFilters {
+  return {
+    days: input?.days ?? 7,
+    role: input?.role ?? "all",
+    channel: input?.channel ?? "all",
+    campaignId: input?.campaignId ?? "all"
+  };
+}
+
+export async function getAnalyticsDashboardData(filters: AnalyticsFilters): Promise<AnalyticsDashboardData> {
+  if (isLive) return getLiveAnalyticsDashboardData(filters);
+  return buildMockAnalyticsDashboard(filters);
+}
+
+export function getAnalyticsErrorMessage(error: unknown) {
+  if (isLive) return getLiveAnalyticsErrorMessage(error);
+  return error instanceof Error ? error.message : "분석 데이터를 불러오지 못했습니다.";
 }
 
 // ────────────────────────────────────────────────────────────────────────────

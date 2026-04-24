@@ -18,6 +18,16 @@ export type ApplicationStatus = "applied" | "selected" | "rejected" | "cancelled
 export type VerificationStatus = "pending" | "verified" | "rejected";
 export type ExperienceType = "product" | "local";
 export type BrandPlan = "basic" | "standard" | "pro";
+export type AnalyticsEventName =
+  | "page_view"
+  | "sign_up_completed"
+  | "login_completed"
+  | "campaign_viewed"
+  | "campaign_applied"
+  | "application_selected"
+  | "submission_started"
+  | "submission_completed"
+  | "channel_saved";
 export type Industry =
   | "뷰티"
   | "푸드"
@@ -309,4 +319,173 @@ export type SubmissionChecklistItem = {
   required: boolean;
   channelTypes: ChannelType[];
   checked: boolean;
+};
+
+export type AnalyticsVisitor = {
+  id: string;
+  visitorId: string;
+  userId?: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  firstReferrer?: string;
+  firstLandingPath?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AnalyticsSession = {
+  id: string;
+  sessionId: string;
+  visitorId: string;
+  userId?: string;
+  startedAt: string;
+  endedAt?: string;
+  landingPath: string;
+  referrer?: string;
+  deviceType?: string;
+  browser?: string;
+  os?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AnalyticsEventPayload = {
+  eventName: AnalyticsEventName;
+  visitorId: string;
+  sessionId: string;
+  path: string;
+  routePattern?: string;
+  referrer?: string;
+  campaignId?: string;
+  channelType?: ChannelType;
+  userRole?: UserRole;
+  occurredAt?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type AnalyticsEvent = {
+  id: string;
+  eventName: AnalyticsEventName;
+  visitorId: string;
+  sessionId: string;
+  userId?: string;
+  userRole?: UserRole;
+  path: string;
+  routePattern?: string;
+  referrer?: string;
+  campaignId?: string;
+  channelType?: ChannelType;
+  metadata: Record<string, unknown>;
+  occurredAt: string;
+  createdAt: string;
+};
+
+export type AnalyticsKpiSummary = {
+  totalUsers: number;
+  newUsersToday: number;
+  newUsers7d: number;
+  newUsers30d: number;
+  visitorsToday: number;
+  sessionsToday: number;
+  pageViewsToday: number;
+  dau: number;
+  wau: number;
+  mau: number;
+  activeUsers7d: number;
+  applicationConversionRate: number;
+  submissionConversionRate: number;
+};
+
+export type AnalyticsTimeSeriesPoint = {
+  date: string;
+  visitors: number;
+  sessions: number;
+  pageViews: number;
+  signUps: number;
+  applications: number;
+  selected: number;
+  submissions: number;
+};
+
+export type AnalyticsFunnelStep = {
+  key: string;
+  label: string;
+  count: number;
+  conversionFromPrevious?: number;
+};
+
+export type AnalyticsTopCampaignRow = {
+  campaignId: string;
+  campaignTitle: string;
+  brandName: string;
+  views: number;
+  applications: number;
+  submissions: number;
+  applicationConversionRate: number;
+  submissionConversionRate: number;
+};
+
+export type AnalyticsTopPageRow = {
+  path: string;
+  routePattern: string;
+  views: number;
+  uniqueVisitors: number;
+  avgViewsPerVisitor: number;
+};
+
+export type AnalyticsChannelActivityRow = {
+  channelType: ChannelType;
+  pageViews: number;
+  applications: number;
+  submissions: number;
+};
+
+export type AnalyticsUserActivityRow = {
+  userId: string;
+  nickname: string;
+  role: UserRole;
+  lastSeenAt: string;
+  pageViews: number;
+  applications: number;
+  submissions: number;
+  lastActionLabel: string;
+};
+
+export type AnalyticsRetentionPoint = {
+  cohortDate: string;
+  cohortSize: number;
+  day1Rate: number;
+  day7Rate: number;
+  day30Rate: number;
+};
+
+export type AnalyticsActivityFeedRow = {
+  id: string;
+  occurredAt: string;
+  eventName: AnalyticsEventName;
+  label: string;
+  path: string;
+  nickname?: string;
+  userRole?: UserRole;
+};
+
+export type AnalyticsFilters = {
+  days: 1 | 7 | 30 | 90;
+  role?: UserRole | "all";
+  channel?: ChannelType | "all";
+  campaignId?: string | "all";
+};
+
+export type AnalyticsDashboardData = {
+  filters: AnalyticsFilters;
+  summary: AnalyticsKpiSummary;
+  timeSeries: AnalyticsTimeSeriesPoint[];
+  funnel: AnalyticsFunnelStep[];
+  topCampaigns: AnalyticsTopCampaignRow[];
+  topPages: AnalyticsTopPageRow[];
+  channelActivity: AnalyticsChannelActivityRow[];
+  activeUsers: AnalyticsUserActivityRow[];
+  recentActivity: AnalyticsActivityFeedRow[];
+  retention: AnalyticsRetentionPoint[];
+  campaigns: Pick<Campaign, "id" | "title">[];
 };

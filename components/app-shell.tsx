@@ -12,6 +12,7 @@ const memberNav = [
 
 const adminNav = [
   ["대시보드", "/admin"],
+  ["분석", "/admin/analytics"],
   ["캠페인", "/admin/campaigns"],
   ["제출물", "/admin/submissions"]
 ];

@@ -174,3 +174,48 @@ export type SubmissionMetricsRow = {
   conversion_count: number;
   captured_at: string;
 };
+
+export type AnalyticsVisitorRow = {
+  id: string;
+  visitor_id: string;
+  user_id: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  first_referrer: string | null;
+  first_landing_path: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AnalyticsSessionRow = {
+  id: string;
+  session_id: string;
+  visitor_id: string;
+  user_id: string | null;
+  started_at: string;
+  ended_at: string | null;
+  landing_path: string;
+  referrer: string | null;
+  device_type: string | null;
+  browser: string | null;
+  os: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AnalyticsEventRow = {
+  id: string;
+  event_name: "page_view" | "sign_up_completed" | "login_completed" | "campaign_viewed" | "campaign_applied" | "application_selected" | "submission_started" | "submission_completed" | "channel_saved";
+  visitor_id: string;
+  session_id: string;
+  user_id: string | null;
+  user_role: "member" | "admin" | "brand" | null;
+  path: string;
+  route_pattern: string | null;
+  referrer: string | null;
+  campaign_id: string | null;
+  channel_type: "threads" | "x" | "wordpress" | "kakao" | null;
+  metadata: Record<string, unknown>;
+  occurred_at: string;
+  created_at: string;
+};
