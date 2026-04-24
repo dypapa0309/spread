@@ -126,6 +126,44 @@ export function AnalyticsDashboard({
         <MetricCard label="전환율" value={`${data.summary.applicationConversionRate}%`} sub={`신청 → 제출 ${data.summary.submissionConversionRate}%`} />
       </div>
 
+      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card className="grid gap-5">
+          <SectionHeader
+            eyebrow="Conversion"
+            title="전환 보드"
+            caption="방문에서 처리 완료까지 어디서 많이 빠지는지 바로 볼 수 있습니다."
+          />
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <MetricCard label="조회 → 신청" value={`${data.conversionSummary.viewToApplyRate}%`} sub={`${number(data.conversionSummary.views)}건 중 ${number(data.conversionSummary.applications)}건`} />
+            <MetricCard label="신청 → 선정" value={`${data.conversionSummary.applyToSelectedRate}%`} sub={`${number(data.conversionSummary.applications)}건 중 ${number(data.conversionSummary.selected)}건`} />
+            <MetricCard label="선정 → 제출 시작" value={`${data.conversionSummary.selectedToSubmissionStartedRate}%`} sub={`${number(data.conversionSummary.selected)}건 중 ${number(data.conversionSummary.submissionStarted)}건`} />
+            <MetricCard label="제출 시작 → 제출 완료" value={`${data.conversionSummary.submissionStartedToCompletedRate}%`} sub={`${number(data.conversionSummary.submissionStarted)}건 중 ${number(data.conversionSummary.submissionCompleted)}건`} />
+            <MetricCard label="제출 완료 → 처리 완료" value={`${data.conversionSummary.submissionCompletedToProcessedRate}%`} sub={`${number(data.conversionSummary.submissionCompleted)}건 중 ${number(data.conversionSummary.processed)}건`} active />
+          </div>
+          <div className="grid gap-3 rounded-2xl border border-spread-ink/10 bg-spread-ink/[0.02] p-4 md:grid-cols-5">
+            <InlineStat label="조회" value={number(data.conversionSummary.views)} />
+            <InlineStat label="신청" value={number(data.conversionSummary.applications)} />
+            <InlineStat label="선정" value={number(data.conversionSummary.selected)} />
+            <InlineStat label="제출 완료" value={number(data.conversionSummary.submissionCompleted)} />
+            <InlineStat label="처리 완료" value={number(data.conversionSummary.processed)} />
+          </div>
+        </Card>
+
+        <Card className="grid gap-5">
+          <SectionHeader
+            eyebrow="Speed"
+            title="속도 보드"
+            caption="운영이 오래 걸리는 구간과 사용자가 늦게 움직이는 구간을 봅니다."
+          />
+          <div className="grid gap-3 md:grid-cols-2">
+            <TimeMetricCard label="신청 → 선정" hours={data.timeToActionSummary.applyToSelectedHours} />
+            <TimeMetricCard label="선정 → 제출 시작" hours={data.timeToActionSummary.selectedToSubmissionStartedHours} />
+            <TimeMetricCard label="제출 시작 → 제출 완료" hours={data.timeToActionSummary.submissionStartedToCompletedHours} />
+            <TimeMetricCard label="제출 완료 → 처리 완료" hours={data.timeToActionSummary.submissionCompletedToProcessedHours} />
+          </div>
+        </Card>
+      </div>
+
       <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <Card className="grid gap-5">
           <SectionHeader
@@ -189,7 +227,8 @@ export function AnalyticsDashboard({
                   <th className="pb-3 pr-4">캠페인</th>
                   <th className="pb-3 pr-4">조회</th>
                   <th className="pb-3 pr-4">신청</th>
-                  <th className="pb-3 pr-4">제출</th>
+                  <th className="pb-3 pr-4">선정</th>
+                  <th className="pb-3 pr-4">제출 완료</th>
                   <th className="pb-3">전환</th>
                 </tr>
               </thead>
@@ -202,12 +241,18 @@ export function AnalyticsDashboard({
                     </td>
                     <td className="py-3 pr-4">{number(row.views)}</td>
                     <td className="py-3 pr-4">{number(row.applications)}</td>
+                    <td className="py-3 pr-4">{number(row.selected)}</td>
                     <td className="py-3 pr-4">{number(row.submissions)}</td>
-                    <td className="py-3">{row.applicationConversionRate}% / {row.submissionConversionRate}%</td>
+                    <td className="py-3">
+                      <div className="grid gap-1 text-xs text-spread-ink/65">
+                        <span>조회 → 신청 {row.applicationConversionRate}%</span>
+                        <span>신청 → 제출 {row.submissionConversionRate}%</span>
+                      </div>
+                    </td>
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={5} className="py-10 text-center text-sm text-spread-ink/50">표시할 캠페인 데이터가 아직 없습니다.</td>
+                    <td colSpan={6} className="py-10 text-center text-sm text-spread-ink/50">표시할 캠페인 데이터가 아직 없습니다.</td>
                   </tr>
                 )}
               </tbody>
@@ -235,6 +280,58 @@ export function AnalyticsDashboard({
                 <p className="mt-3 text-xs text-spread-ink/55">방문자 {number(page.uniqueVisitors)}명 · 1인 평균 {page.avgViewsPerVisitor}회</p>
               </div>
             )) : <EmptyState label="표시할 페이지 데이터가 아직 없습니다." />}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+        <Card className="grid gap-5">
+          <SectionHeader
+            eyebrow="Dropoff"
+            title="이탈 상위 캠페인"
+            caption="조회는 충분한데 신청이 약하거나, 신청은 많은데 제출이 낮은 캠페인입니다."
+          />
+          <div className="grid gap-3">
+            {data.dropoffCampaigns.length ? data.dropoffCampaigns.map((row) => (
+              <div key={row.campaignId} className="rounded-2xl border border-spread-ink/10 bg-spread-ink/[0.02] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-black">{row.campaignTitle}</p>
+                    <p className="mt-1 text-xs text-spread-ink/50">{row.brandName}</p>
+                  </div>
+                  <Badge active={row.primaryDropoff === "view_to_apply"}>
+                    {row.primaryDropoff === "view_to_apply" ? "조회 → 신청 이탈" : "신청 → 제출 이탈"}
+                  </Badge>
+                </div>
+                <div className="mt-4 grid gap-2 text-xs text-spread-ink/65 md:grid-cols-2">
+                  <span>조회 {number(row.views)} · 신청률 {row.viewToApplyRate}%</span>
+                  <span>신청 {number(row.applications)} · 제출률 {row.applyToSubmissionRate}%</span>
+                </div>
+              </div>
+            )) : <EmptyState label="이탈 상위 캠페인이 아직 없습니다." />}
+          </div>
+        </Card>
+
+        <Card className="grid gap-5">
+          <SectionHeader
+            eyebrow="Bottleneck"
+            title="병목 구간"
+            caption="선정, 제출 시작, 처리 완료까지 오래 걸리는 캠페인을 찾습니다."
+          />
+          <div className="grid gap-3">
+            {data.bottleneckCampaigns.length ? data.bottleneckCampaigns.map((row) => (
+              <div key={row.campaignId} className="rounded-2xl border border-spread-ink/10 bg-spread-ink/[0.02] p-4">
+                <div>
+                  <p className="text-sm font-black">{row.campaignTitle}</p>
+                  <p className="mt-1 text-xs text-spread-ink/50">{row.brandName}</p>
+                </div>
+                <div className="mt-4 grid gap-2 text-xs text-spread-ink/65 md:grid-cols-3">
+                  <span>신청 → 선정 {formatHours(row.applyToSelectedHours)}</span>
+                  <span>선정 → 제출 시작 {formatHours(row.selectedToSubmissionStartedHours)}</span>
+                  <span>제출 완료 → 처리 완료 {formatHours(row.submissionCompletedToProcessedHours)}</span>
+                </div>
+              </div>
+            )) : <EmptyState label="병목 구간 데이터가 아직 없습니다." />}
           </div>
         </Card>
       </div>
@@ -379,6 +476,16 @@ function MetricCard({ label, value, sub, active = false }: { label: string; valu
   );
 }
 
+function TimeMetricCard({ label, hours }: { label: string; hours?: number }) {
+  return (
+    <div className="rounded-2xl border border-spread-ink/10 bg-spread-ink/[0.02] p-4">
+      <p className="text-xs font-semibold text-spread-ink/50">{label}</p>
+      <p className="mt-2 text-2xl font-black">{formatHours(hours)}</p>
+      <p className="mt-2 text-xs text-spread-ink/55">데이터가 있는 건만 평균 계산</p>
+    </div>
+  );
+}
+
 function TrendStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-spread-ink/10 bg-spread-ink/[0.02] p-4">
@@ -473,4 +580,10 @@ function EmptyState({ label }: { label: string }) {
       {label}
     </div>
   );
+}
+
+function formatHours(hours?: number) {
+  if (hours === undefined) return "데이터 없음";
+  if (hours < 24) return `${hours.toFixed(1)}시간`;
+  return `${(hours / 24).toFixed(1)}일`;
 }

@@ -7,10 +7,14 @@ import * as real from "@/services/supabase-service";
 import { hasSupabaseEnv } from "@/supabase/env";
 import type {
   AnalyticsActivityFeedRow,
+  AnalyticsBottleneckCampaignRow,
+  AnalyticsConversionSummary,
   AnalyticsDashboardData,
   AnalyticsEventName,
   AnalyticsFilters,
+  AnalyticsDropoffCampaignRow,
   AnalyticsRetentionPoint,
+  AnalyticsTimeToActionSummary,
   AnalyticsTimeSeriesPoint,
   AnalyticsTopCampaignRow,
   AnalyticsTopPageRow,
@@ -98,6 +102,22 @@ function filterMockAnalyticsEvents(events: MockAnalyticsEvent[], filters: Analyt
     matchesAnalyticsChannel(event.channelType, filters.channel) &&
     matchesAnalyticsCampaign(event.campaignId, filters.campaignId)
   );
+}
+
+function averageHours(values: number[]) {
+  if (!values.length) return undefined;
+  return Math.round((values.reduce((total, value) => total + value, 0) / values.length) * 10) / 10;
+}
+
+function diffHours(start?: string | null, end?: string | null) {
+  if (!start || !end) return undefined;
+  const diff = new Date(end).getTime() - new Date(start).getTime();
+  if (Number.isNaN(diff) || diff < 0) return undefined;
+  return diff / (1000 * 60 * 60);
+}
+
+function isProcessedStatus(status: SubmissionStatus) {
+  return ["approved", "fulfillment_pending", "completed"].includes(status);
 }
 
 function createMockAnalyticsEvents() {
@@ -301,6 +321,14 @@ function buildMockAnalyticsDashboard(filters: AnalyticsFilters): AnalyticsDashbo
   const events = filterMockAnalyticsEvents(createMockAnalyticsEvents(), filters);
   const users = mock.users;
   const campaigns = mock.getCampaignViews();
+  const applicationsData = mock.campaignApplications.filter((application) =>
+    matchesAnalyticsChannel(application.channelType, filters.channel) &&
+    matchesAnalyticsCampaign(application.campaignId, filters.campaignId)
+  );
+  const submissionsData = mock.getSubmissionViews().filter((submission) =>
+    matchesAnalyticsChannel(submission.channelType, filters.channel) &&
+    matchesAnalyticsCampaign(submission.campaignId, filters.campaignId)
+  );
   const usersCreatedAt = users.map((user) => user.createdAt);
   const today = startOfDay(new Date());
   const last7 = addDays(today, -6);
@@ -360,23 +388,166 @@ function buildMockAnalyticsDashboard(filters: AnalyticsFilters): AnalyticsDashbo
   const topCampaigns: AnalyticsTopCampaignRow[] = campaigns
     .map((campaign) => {
       const campaignEvents = events.filter((event) => event.campaignId === campaign.id);
+      const campaignApplications = applicationsData.filter((application) => application.campaignId === campaign.id);
+      const campaignSubmissions = submissionsData.filter((submission) => submission.campaignId === campaign.id);
       const views = campaignEvents.filter((event) => event.eventName === "campaign_viewed").length;
-      const applicationCount = campaignEvents.filter((event) => event.eventName === "campaign_applied").length;
-      const submissionCount = campaignEvents.filter((event) => event.eventName === "submission_completed").length;
+      const applicationCount = campaignApplications.length;
+      const selectedCount = campaignApplications.filter((application) => application.status === "selected").length;
+      const submissionStartedCount = campaignEvents.filter((event) => event.eventName === "submission_started").length;
+      const submissionCount = campaignSubmissions.length;
+      const processedCount = campaignSubmissions.filter((submission) => isProcessedStatus(submission.status)).length;
       return {
         campaignId: campaign.id,
         campaignTitle: campaign.title,
         brandName: campaign.brand.name,
         views,
         applications: applicationCount,
+        selected: selectedCount,
+        submissionStarted: submissionStartedCount,
         submissions: submissionCount,
+        processed: processedCount,
         applicationConversionRate: asPercent(applicationCount, views),
-        submissionConversionRate: asPercent(submissionCount, applicationCount)
+        selectionConversionRate: asPercent(selectedCount, applicationCount),
+        submissionStartConversionRate: asPercent(submissionStartedCount, selectedCount),
+        submissionConversionRate: asPercent(submissionCount, applicationCount),
+        processedConversionRate: asPercent(processedCount, submissionCount)
       };
     })
     .filter((campaign) => campaign.views || campaign.applications || campaign.submissions)
     .sort((a, b) => b.views - a.views)
     .slice(0, 8);
+
+  const conversionSummary: AnalyticsConversionSummary = {
+    viewToApplyRate: asPercent(applicationsData.length, events.filter((event) => event.eventName === "campaign_viewed").length),
+    applyToSelectedRate: asPercent(applicationsData.filter((application) => application.status === "selected").length, applicationsData.length),
+    selectedToSubmissionStartedRate: asPercent(
+      events.filter((event) => event.eventName === "submission_started").length,
+      applicationsData.filter((application) => application.status === "selected").length
+    ),
+    submissionStartedToCompletedRate: asPercent(
+      submissionsData.length,
+      events.filter((event) => event.eventName === "submission_started").length
+    ),
+    submissionCompletedToProcessedRate: asPercent(
+      submissionsData.filter((submission) => isProcessedStatus(submission.status)).length,
+      submissionsData.length
+    ),
+    views: events.filter((event) => event.eventName === "campaign_viewed").length,
+    applications: applicationsData.length,
+    selected: applicationsData.filter((application) => application.status === "selected").length,
+    submissionStarted: events.filter((event) => event.eventName === "submission_started").length,
+    submissionCompleted: submissionsData.length,
+    processed: submissionsData.filter((submission) => isProcessedStatus(submission.status)).length
+  };
+
+  const submissionStartedMap = new Map(
+    events
+      .filter((event) => event.eventName === "submission_started" && event.campaignId && event.userId && event.channelType)
+      .map((event) => [`${event.campaignId}:${event.userId}:${event.channelType}`, event.occurredAt])
+  );
+
+  const timeToActionSummary: AnalyticsTimeToActionSummary = {
+    applyToSelectedHours: averageHours(
+      applicationsData
+        .map((application) => diffHours(application.appliedAt, application.decidedAt))
+        .filter((value): value is number => value !== undefined)
+    ),
+    selectedToSubmissionStartedHours: averageHours(
+      applicationsData
+        .filter((application) => application.status === "selected")
+        .map((application) =>
+          diffHours(
+            application.decidedAt,
+            submissionStartedMap.get(`${application.campaignId}:${application.userId}:${application.channelType}`)
+          )
+        )
+        .filter((value): value is number => value !== undefined)
+    ),
+    submissionStartedToCompletedHours: averageHours(
+      submissionsData
+        .map((submission) =>
+          diffHours(
+            submissionStartedMap.get(`${submission.campaignId}:${submission.userId}:${submission.channelType}`),
+            submission.submittedAt
+          )
+        )
+        .filter((value): value is number => value !== undefined)
+    ),
+    submissionCompletedToProcessedHours: averageHours(
+      submissionsData
+        .filter((submission) => isProcessedStatus(submission.status))
+        .map((submission) => diffHours(submission.submittedAt, submission.reviewedAt))
+        .filter((value): value is number => value !== undefined)
+    )
+  };
+
+  const dropoffCampaigns: AnalyticsDropoffCampaignRow[] = topCampaigns
+    .map((campaign) => {
+      const applyToSubmissionRate = asPercent(campaign.submissions, campaign.applications);
+      return {
+        campaignId: campaign.campaignId,
+        campaignTitle: campaign.campaignTitle,
+        brandName: campaign.brandName,
+        views: campaign.views,
+        applications: campaign.applications,
+        selected: campaign.selected,
+        submissions: campaign.submissions,
+        viewToApplyRate: campaign.applicationConversionRate,
+        applyToSubmissionRate,
+        primaryDropoff:
+          (100 - campaign.applicationConversionRate >= 100 - applyToSubmissionRate ? "view_to_apply" : "apply_to_submission") as "view_to_apply" | "apply_to_submission"
+      };
+    })
+    .sort((a, b) => {
+      const aScore = a.primaryDropoff === "view_to_apply" ? a.viewToApplyRate : a.applyToSubmissionRate;
+      const bScore = b.primaryDropoff === "view_to_apply" ? b.viewToApplyRate : b.applyToSubmissionRate;
+      return aScore - bScore;
+    })
+    .slice(0, 6);
+
+  const bottleneckCampaigns: AnalyticsBottleneckCampaignRow[] = campaigns
+    .map((campaign) => {
+      const campaignApplications = applicationsData.filter((application) => application.campaignId === campaign.id);
+      const campaignSubmissions = submissionsData.filter((submission) => submission.campaignId === campaign.id);
+      return {
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        brandName: campaign.brand.name,
+        applyToSelectedHours: averageHours(
+          campaignApplications
+            .map((application) => diffHours(application.appliedAt, application.decidedAt))
+            .filter((value): value is number => value !== undefined)
+        ),
+        selectedToSubmissionStartedHours: averageHours(
+          campaignApplications
+            .filter((application) => application.status === "selected")
+            .map((application) =>
+              diffHours(
+                application.decidedAt,
+                submissionStartedMap.get(`${application.campaignId}:${application.userId}:${application.channelType}`)
+              )
+            )
+            .filter((value): value is number => value !== undefined)
+        ),
+        submissionCompletedToProcessedHours: averageHours(
+          campaignSubmissions
+            .filter((submission) => isProcessedStatus(submission.status))
+            .map((submission) => diffHours(submission.submittedAt, submission.reviewedAt))
+            .filter((value): value is number => value !== undefined)
+        )
+      };
+    })
+    .filter((campaign) =>
+      campaign.applyToSelectedHours !== undefined ||
+      campaign.selectedToSubmissionStartedHours !== undefined ||
+      campaign.submissionCompletedToProcessedHours !== undefined
+    )
+    .sort((a, b) => {
+      const aMax = Math.max(a.applyToSelectedHours ?? 0, a.selectedToSubmissionStartedHours ?? 0, a.submissionCompletedToProcessedHours ?? 0);
+      const bMax = Math.max(b.applyToSelectedHours ?? 0, b.selectedToSubmissionStartedHours ?? 0, b.submissionCompletedToProcessedHours ?? 0);
+      return bMax - aMax;
+    })
+    .slice(0, 6);
 
   const channelActivity = (["threads", "x", "wordpress", "kakao"] as ChannelType[]).map((channelType) => ({
     channelType,
@@ -471,9 +642,13 @@ function buildMockAnalyticsDashboard(filters: AnalyticsFilters): AnalyticsDashbo
       applicationConversionRate: asPercent(applications.length, pageViews.length),
       submissionConversionRate: asPercent(submissions.length, applications.length)
     },
+    conversionSummary,
+    timeToActionSummary,
     timeSeries,
     funnel,
     topCampaigns,
+    dropoffCampaigns,
+    bottleneckCampaigns,
     topPages,
     channelActivity,
     activeUsers,

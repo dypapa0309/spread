@@ -396,6 +396,27 @@ export type AnalyticsKpiSummary = {
   submissionConversionRate: number;
 };
 
+export type AnalyticsConversionSummary = {
+  viewToApplyRate: number;
+  applyToSelectedRate: number;
+  selectedToSubmissionStartedRate: number;
+  submissionStartedToCompletedRate: number;
+  submissionCompletedToProcessedRate: number;
+  views: number;
+  applications: number;
+  selected: number;
+  submissionStarted: number;
+  submissionCompleted: number;
+  processed: number;
+};
+
+export type AnalyticsTimeToActionSummary = {
+  applyToSelectedHours?: number;
+  selectedToSubmissionStartedHours?: number;
+  submissionStartedToCompletedHours?: number;
+  submissionCompletedToProcessedHours?: number;
+};
+
 export type AnalyticsTimeSeriesPoint = {
   date: string;
   visitors: number;
@@ -420,9 +441,15 @@ export type AnalyticsTopCampaignRow = {
   brandName: string;
   views: number;
   applications: number;
+  selected: number;
+  submissionStarted: number;
   submissions: number;
+  processed: number;
   applicationConversionRate: number;
+  selectionConversionRate: number;
+  submissionStartConversionRate: number;
   submissionConversionRate: number;
+  processedConversionRate: number;
 };
 
 export type AnalyticsTopPageRow = {
@@ -469,6 +496,28 @@ export type AnalyticsActivityFeedRow = {
   userRole?: UserRole;
 };
 
+export type AnalyticsDropoffCampaignRow = {
+  campaignId: string;
+  campaignTitle: string;
+  brandName: string;
+  views: number;
+  applications: number;
+  selected: number;
+  submissions: number;
+  viewToApplyRate: number;
+  applyToSubmissionRate: number;
+  primaryDropoff: "view_to_apply" | "apply_to_submission";
+};
+
+export type AnalyticsBottleneckCampaignRow = {
+  campaignId: string;
+  campaignTitle: string;
+  brandName: string;
+  applyToSelectedHours?: number;
+  selectedToSubmissionStartedHours?: number;
+  submissionCompletedToProcessedHours?: number;
+};
+
 export type AnalyticsFilters = {
   days: 1 | 7 | 30 | 90;
   role?: UserRole | "all";
@@ -479,9 +528,13 @@ export type AnalyticsFilters = {
 export type AnalyticsDashboardData = {
   filters: AnalyticsFilters;
   summary: AnalyticsKpiSummary;
+  conversionSummary: AnalyticsConversionSummary;
+  timeToActionSummary: AnalyticsTimeToActionSummary;
   timeSeries: AnalyticsTimeSeriesPoint[];
   funnel: AnalyticsFunnelStep[];
   topCampaigns: AnalyticsTopCampaignRow[];
+  dropoffCampaigns: AnalyticsDropoffCampaignRow[];
+  bottleneckCampaigns: AnalyticsBottleneckCampaignRow[];
   topPages: AnalyticsTopPageRow[];
   channelActivity: AnalyticsChannelActivityRow[];
   activeUsers: AnalyticsUserActivityRow[];
