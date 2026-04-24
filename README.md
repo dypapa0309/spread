@@ -14,6 +14,7 @@ npm run dev
 ## 주요 라우트
 
 - `/login`: 사용자/광고주 탭 진입. admin은 푸터 소형 링크
+- `/admin/login`: 관리자 전용 로그인
 - `/member`: 참여자 홈
 - `/member/campaigns`: 캠페인 목록
 - `/member/campaigns/[id]`: 캠페인 상세

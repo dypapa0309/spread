@@ -6,13 +6,14 @@ import { getSupabaseEnv, hasSupabaseEnv } from "@/supabase/env";
 type AuthRole = "member" | "admin" | "brand";
 
 const PROTECTED = ["/member", "/admin", "/brand"];
-const AUTH_PAGES = ["/login"];
+const AUTH_PAGES = ["/login", "/admin/login"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtectedPath = PROTECTED.some((p) => pathname.startsWith(p));
   const isAuthPath = AUTH_PAGES.some((p) => pathname === p);
+  const isAdminAuthPath = pathname === "/admin/login";
 
   if (!isProtectedPath && !isAuthPath) {
     return NextResponse.next();
@@ -45,7 +46,7 @@ export async function middleware(request: NextRequest) {
   if (!user) {
     if (isAuthPath) return response;
 
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL(pathname.startsWith("/admin") ? "/admin/login" : "/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -53,6 +54,15 @@ export async function middleware(request: NextRequest) {
   const role = await getRequestUserRole(supabase, user.id, user.user_metadata);
 
   if (isAuthPath) {
+    if (isAdminAuthPath && role !== "admin") {
+      return NextResponse.redirect(new URL(getRoleHomePath(role), request.url));
+    }
+
+    const nextPath = request.nextUrl.searchParams.get("next");
+    if (role === "admin" && isAdminAuthPath && nextPath?.startsWith("/admin")) {
+      return NextResponse.redirect(new URL(nextPath, request.url));
+    }
+
     return NextResponse.redirect(new URL(getRoleHomePath(role), request.url));
   }
 
@@ -65,7 +75,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/member/:path*", "/admin/:path*", "/brand/:path*"]
+  matcher: ["/login", "/admin/login", "/member/:path*", "/admin/:path*", "/brand/:path*"]
 };
 
 async function getRequestUserRole(

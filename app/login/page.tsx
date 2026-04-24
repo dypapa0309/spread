@@ -173,7 +173,7 @@ function MemberLoginForm() {
       const role = await getCurrentUserRole("member");
       if (!isPortalRoleAllowed("member", role)) {
         await logoutAfterRoleMismatch();
-        setError("광고주 계정입니다. 광고주 탭에서 로그인해 주세요.");
+        setError(role === "admin" ? "관리자 계정은 관리자 전용 로그인 페이지를 이용해 주세요." : "광고주 계정입니다. 광고주 탭에서 로그인해 주세요.");
         setLoading(false);
         return;
       }
@@ -401,7 +401,7 @@ function BrandLoginForm() {
       const role = await getCurrentUserRole("brand");
       if (!isPortalRoleAllowed("brand", role)) {
         await logoutAfterRoleMismatch();
-        setError("사용자 계정입니다. 사용자 탭에서 로그인해 주세요.");
+        setError(role === "admin" ? "관리자 계정은 관리자 전용 로그인 페이지를 이용해 주세요." : "사용자 계정입니다. 사용자 탭에서 로그인해 주세요.");
         setLoading(false);
         return;
       }
@@ -446,7 +446,6 @@ async function getCurrentUserRole(fallback: Portal): Promise<AuthRole> {
 }
 
 function isPortalRoleAllowed(portal: Portal, role: AuthRole) {
-  if (role === "admin") return true;
   return portal === role;
 }
 

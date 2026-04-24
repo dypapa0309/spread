@@ -90,7 +90,7 @@ export function AppShell({ children, role = "member" }: { children: ReactNode; r
           </div>
           <div className="flex items-center justify-between gap-3 border-t border-spread-ink/10 pt-4">
             <span>© SPREAD. All rights reserved.</span>
-            <Link href="/admin" className="text-spread-ink/35">관리자 로그인</Link>
+            <Link href="/admin/login" className="text-spread-ink/35">관리자 로그인</Link>
           </div>
         </footer>
       ) : null}
