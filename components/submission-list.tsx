@@ -8,7 +8,7 @@ export function SubmissionList({ submissions, admin = false }: { submissions: Su
     return (
       <Card className="py-12 text-center">
         <p className="text-lg font-black">아직 제출물이 없습니다</p>
-        <p className="mt-2 text-sm text-spread-ink/60">필터를 바꾸거나 새 미션을 제출해보세요.</p>
+        <p className="mt-2 text-sm text-spread-ink/60">제출이 생기면 이곳에서 상태를 바로 확인할 수 있습니다.</p>
       </Card>
     );
   }
@@ -34,7 +34,7 @@ export function SubmissionList({ submissions, admin = false }: { submissions: Su
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-spread-ink/65">
             <span>제출 {shortDate(submission.submittedAt)}</span>
-            {submission.postUrl ? <a className="font-semibold text-spread-point" href={submission.postUrl}>링크 열기</a> : <span>스크린샷 인증</span>}
+            {submission.postUrl ? <a className="font-semibold text-spread-point" href={submission.postUrl}>게시물 보기</a> : <span>캡처 인증</span>}
           </div>
         </Card>
       ))}

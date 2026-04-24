@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
 import { getAdminSummary } from "@/services/spread-service";
-import { shortDate } from "@/lib/labels";
+import { campaignStatusLabels, shortDate } from "@/lib/labels";
 
 export default async function AdminPage() {
   const summary = await getAdminSummary();
@@ -88,7 +88,7 @@ export default async function AdminPage() {
                       <p className="text-sm font-black leading-5">{campaign.title}</p>
                       <p className="mt-1 text-xs text-spread-ink/55">{campaign.brand.name}</p>
                     </div>
-                    <Badge active={campaign.status === "open"}>{campaign.status}</Badge>
+                    <Badge active={campaign.status === "open"}>{campaignStatusLabels[campaign.status]}</Badge>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs text-spread-ink/60">
                     <span>지원 {campaign.applicationsCount}</span>

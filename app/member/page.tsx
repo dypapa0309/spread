@@ -40,7 +40,7 @@ export default async function MemberHomePage() {
           </div>
           <div className="grid gap-4">
             <Card>
-              <h2 className="text-lg font-black">리뷰 가능 채널</h2>
+              <h2 className="text-lg font-black">활동 채널</h2>
               <div className="mt-4 grid gap-2">
                 {channels.map((channel) => (
                   <a key={channel} href={`/member/campaigns?channel=${channel}`} className="flex items-center justify-between rounded-2xl border border-spread-ink/10 px-4 py-3 text-sm font-semibold">
@@ -50,11 +50,11 @@ export default async function MemberHomePage() {
               </div>
             </Card>
             <Card>
-              <h2 className="text-lg font-black">운영 포인트</h2>
+              <h2 className="text-lg font-black">참여 안내</h2>
               <div className="mt-4 grid gap-2 text-sm text-spread-ink/70">
                 <p className="rounded-2xl border border-spread-ink/10 px-4 py-3">선정된 뒤에만 제출이 열립니다.</p>
-                <p className="rounded-2xl border border-spread-ink/10 px-4 py-3">모든 필수 채널을 제출해야 처리 완료 후보가 됩니다.</p>
-                <p className="rounded-2xl border border-spread-ink/10 px-4 py-3">콘텐츠 유지기간은 6개월입니다.</p>
+                <p className="rounded-2xl border border-spread-ink/10 px-4 py-3">필수 채널을 모두 올려야 검수가 시작됩니다.</p>
+                <p className="rounded-2xl border border-spread-ink/10 px-4 py-3">콘텐츠 유지 기간은 6개월입니다.</p>
               </div>
             </Card>
           </div>

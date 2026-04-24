@@ -1,4 +1,4 @@
-import type { ApplicationStatus, ChannelType, ExperienceType, Industry, ReviewMode, SubmissionStatus, VerificationStatus } from "@/types/spread";
+import type { ApplicationStatus, CampaignStatus, ChannelType, ExperienceType, Industry, ReviewMode, SubmissionStatus, VerificationStatus } from "@/types/spread";
 
 export const channelLabels: Record<ChannelType, string> = {
   threads: "Threads",
@@ -18,6 +18,14 @@ export const reviewModeLabels: Record<ReviewMode, string> = {
   manual: "운영자 검수",
   semi_auto: "반자동 검수",
   auto: "자동 검수"
+};
+
+export const campaignStatusLabels: Record<CampaignStatus, string> = {
+  draft: "작성 중",
+  open: "모집 중",
+  closed: "마감",
+  paused: "일시 중지",
+  completed: "종료"
 };
 
 export const submissionStatusLabels: Record<SubmissionStatus, string> = {

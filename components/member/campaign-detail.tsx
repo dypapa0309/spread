@@ -63,7 +63,7 @@ export function CampaignDetail({ campaign, activePenalty }: { campaign: Campaign
       </div>
       <aside className="grid gap-4 self-start">
         <Card>
-          <h2 className="text-lg font-black">운영 정보</h2>
+          <h2 className="text-lg font-black">참여 정보</h2>
           <div className="mt-4 grid gap-3">
             <Row label="모집" value={`${campaign.recruitLimit}명`} />
             <Row label="지원" value={`${campaign.applicationsCount}명`} />
@@ -89,9 +89,9 @@ export function CampaignDetail({ campaign, activePenalty }: { campaign: Campaign
           ) : null}
         </Card>
         <Card>
-          <h2 className="text-lg font-black">검수 방식</h2>
+          <h2 className="text-lg font-black">검수 안내</h2>
           <p className="mt-3 text-sm leading-6 text-spread-ink/65">
-            제출 시 URL, 채널, 중복, 키워드, 금지 표현, 최소 길이를 먼저 검사합니다. Threads와 X는 반자동, WordPress는 자동화 친화, KakaoTalk은 인증 중심으로 처리합니다.
+            제출이 들어오면 링크, 공개 여부, 중복, 필수 태그, 금지 표현, 최소 길이를 먼저 확인합니다. Threads와 X는 반자동, WordPress는 자동화 친화, KakaoTalk은 인증 중심으로 처리합니다.
           </p>
         </Card>
       </aside>

@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { LinkButton } from "@/components/ui/button";
 import { Card, Section } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { channelLabels, experienceTypeLabels } from "@/lib/labels";
+import { campaignStatusLabels, channelLabels, experienceTypeLabels } from "@/lib/labels";
 import { listCampaigns } from "@/services/spread-service";
 
 export default async function AdminCampaignsPage() {
@@ -32,7 +32,7 @@ export default async function AdminCampaignsPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge active={campaign.status === "open"}>{campaign.status}</Badge>
+                <Badge active={campaign.status === "open"}>{campaignStatusLabels[campaign.status]}</Badge>
                 <Badge active>{experienceTypeLabels[campaign.experienceType]}</Badge>
                 <Badge>{campaign.category}</Badge>
                 {campaign.channels.map((channel) => <Badge key={channel}>{channelLabels[channel]}</Badge>)}

@@ -6,9 +6,9 @@ export function getApplicationCta(status?: ApplicationStatus, hasPenalty = false
   if (hasPenalty) return { label: "사용 제한 중", href: "/member/profile", disabled: true };
   if (!status) return { label: "신청하기", href: "", disabled: false };
   if (status === "selected") return { label: "제출하기", href: "", disabled: false };
-  if (status === "applied") return { label: "신청 검토 중", href: "/member/profile", disabled: true };
-  if (status === "rejected") return { label: "선정되지 않음", href: "/member/profile", disabled: true };
-  return { label: "신청 취소됨", href: "/member/profile", disabled: true };
+  if (status === "applied") return { label: "검토 중", href: "/member/profile", disabled: true };
+  if (status === "rejected") return { label: "미선정", href: "/member/profile", disabled: true };
+  return { label: "신청 취소", href: "/member/profile", disabled: true };
 }
 
 export function getSubmissionChecklist(channelType: ChannelType): SubmissionChecklistItem[] {

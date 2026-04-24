@@ -59,7 +59,7 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
     return (
       <Card className="mx-auto max-w-xl text-center">
         <Badge active>{eligibility.reason === "penalty" ? "사용 제한 중" : "제출 대기"}</Badge>
-        <h1 className="mt-4 text-3xl font-black">아직 제출할 수 없습니다</h1>
+        <h1 className="mt-4 text-3xl font-black">지금은 제출할 수 없습니다</h1>
         <p className="mt-3 text-sm leading-6 text-spread-ink/65">{eligibility.message}</p>
         {eligibility.penalty ? (
           <p className="mt-3 rounded-2xl border border-spread-point bg-spread-point/10 p-3 text-sm font-semibold text-spread-point">
@@ -174,11 +174,11 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
                     <Input value={input.postUrl} onChange={(event) => updateChannelInput(channelType, "postUrl", event.target.value)} placeholder="https://..." />
                   </Field>
                 ) : null}
-                <Field label="작성 문구/텍스트">
-                  <Textarea value={input.postText} onChange={(event) => updateChannelInput(channelType, "postText", event.target.value)} placeholder="발행한 문구를 붙여넣으세요." />
+                <Field label="게시 내용">
+                  <Textarea value={input.postText} onChange={(event) => updateChannelInput(channelType, "postText", event.target.value)} placeholder="실제로 올린 내용을 붙여넣어 주세요." />
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label={channelType === "kakao" ? "KakaoTalk 피드 캡처 URL" : "스크린샷 URL"}>
+                  <Field label={channelType === "kakao" ? "KakaoTalk 피드 캡처 이미지 URL" : "스크린샷 URL"}>
                     <Input value={input.screenshotUrl} onChange={(event) => updateChannelInput(channelType, "screenshotUrl", event.target.value)} placeholder="/storage/proof.png" />
                   </Field>
                   <Field label="게시 시각">
@@ -191,12 +191,12 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
           {saveMessage ? (
             <p className="rounded-2xl border border-spread-point/30 bg-spread-point/10 px-4 py-3 text-sm font-semibold text-spread-point">{saveMessage}</p>
           ) : null}
-          <Button type="submit" disabled={!fulfillmentAgreed || !checklistComplete || !channelFormsComplete || saving}>{saving ? "제출 중..." : "자동 체크 후 제출"}</Button>
+          <Button type="submit" disabled={!fulfillmentAgreed || !checklistComplete || !channelFormsComplete || saving}>{saving ? "제출 중..." : "검사 후 제출"}</Button>
         </form>
       </Card>
       <div className="grid gap-4 self-start">
         <Card>
-          <h2 className="text-xl font-black">자동 검수 미리보기</h2>
+          <h2 className="text-xl font-black">검수 예상 결과</h2>
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge active>평균 점수 {Math.round(checks.reduce((sum, item) => sum + item.result.score, 0) / Math.max(checks.length, 1))}</Badge>
             {checks.flatMap((item) => item.result.issues.map((issue) => (
@@ -220,13 +220,13 @@ export function SubmissionForm({ campaign, eligibility }: { campaign: CampaignVi
             <p className="mt-2 text-sm text-spread-ink/65">예상 상태: {submissionStatusLabels[result.status]}</p>
             {result.status === "auto_approved" ? (
               <p className="mt-2 rounded-2xl border border-spread-point bg-spread-point/10 p-3 text-sm font-semibold text-spread-point">
-                자동검수 통과: 처리 완료 후보입니다.
+                자동 검수를 통과했습니다. 운영 확인 뒤 완료 처리됩니다.
               </p>
             ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
               {result.labels.map((label) => <Badge key={label}>{label}</Badge>)}
             </div>
-            <LinkButton href="/member/profile#submissions" className="mt-5 w-full">마이에서 제출 보기</LinkButton>
+            <LinkButton href="/member/profile#submissions" className="mt-5 w-full">마이에서 확인</LinkButton>
           </Card>
         ) : null}
       </div>

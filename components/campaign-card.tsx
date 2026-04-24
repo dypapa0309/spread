@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/button";
-import { channelLabels, experienceTypeLabels, shortDate } from "@/lib/labels";
+import { campaignStatusLabels, channelLabels, experienceTypeLabels, shortDate } from "@/lib/labels";
 import type { CampaignView } from "@/types/spread";
 
 export function CampaignCard({ campaign }: { campaign: CampaignView }) {
@@ -17,7 +17,7 @@ export function CampaignCard({ campaign }: { campaign: CampaignView }) {
           <p className="text-xs font-semibold text-spread-ink/60">{campaign.brand.name}</p>
           <h3 className="mt-1 text-xl font-black">{campaign.title}</h3>
         </div>
-        <Badge active={campaign.status === "open"}>{campaign.status}</Badge>
+        <Badge active={campaign.status === "open"}>{campaignStatusLabels[campaign.status]}</Badge>
       </div>
       <p className="text-sm leading-6 text-spread-ink/72">{campaign.summary}</p>
       <div className="flex flex-wrap gap-2">
@@ -61,7 +61,7 @@ export function CampaignCard({ campaign }: { campaign: CampaignView }) {
         </div>
       </div>
       <LinkButton href={`/member/campaigns/${campaign.id}`} className="w-full">
-        미션 보기
+        캠페인 보기
       </LinkButton>
     </Card>
   );

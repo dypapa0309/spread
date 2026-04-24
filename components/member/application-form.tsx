@@ -46,7 +46,7 @@ export function ApplicationForm({ campaign, activePenalty, userChannels = [] }: 
   if (submitted) {
     return (
       <Card className="mx-auto max-w-xl text-center">
-        <Badge active>신청 검토 중</Badge>
+        <Badge active>검토 중</Badge>
         <h1 className="mt-4 text-3xl font-black">신청이 접수되었습니다</h1>
         <p className="mt-3 text-sm leading-6 text-spread-ink/65">
           관리자가 채널 정보와 과거 이력을 보고 선정합니다. 선정되면 제출 버튼이 열립니다.
@@ -118,11 +118,11 @@ export function ApplicationForm({ campaign, activePenalty, userChannels = [] }: 
               <LinkButton href="/member/profile" variant="outline" className="mt-4 w-full">프로필에서 채널 등록하기</LinkButton>
             ) : null}
           </div>
-          <Field label="한줄 신청 메모" hint="운영자가 선정할 때 보는 짧은 참여 의도입니다.">
+          <Field label="신청 메모" hint="운영자가 선정할 때 참고하는 짧은 참여 메모입니다.">
             <Textarea
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-              placeholder="어떤 반응을 만들 수 있는지 짧게 적어주세요."
+              placeholder="어떤 방식으로 참여할지 짧게 적어주세요."
             />
           </Field>
           <PrivacyConsent checked={agreed} onChange={setAgreed} variant="application" />
@@ -133,7 +133,7 @@ export function ApplicationForm({ campaign, activePenalty, userChannels = [] }: 
         </form>
       </Card>
       <Card className="self-start">
-        <h2 className="text-xl font-black">선정 후 제출</h2>
+        <h2 className="text-xl font-black">선정 이후 진행</h2>
         <p className="mt-3 text-sm leading-6 text-spread-ink/65">
           참여하기는 확정이 아닙니다. 관리자가 신청자 목록을 확인해 선정하면 제출 페이지가 열립니다.
         </p>
