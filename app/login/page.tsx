@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, useRef, useMemo, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Button, LinkButton } from "@/components/ui/button";
@@ -51,6 +51,7 @@ export default function LoginPage() {
   const [portal, setPortal] = useState<Portal>("member");
   const [checkingSession, setCheckingSession] = useState(!isMock);
   const router = useRouter();
+  const nextPath = useSafeNextPath();
 
   useEffect(() => {
     if (isMock) return;
@@ -71,7 +72,7 @@ export default function LoginPage() {
 
         const role = await getCurrentUserRole("member");
         if (!active) return;
-        router.replace(getRoleHomePath(role));
+        router.replace(nextPath ?? getRoleHomePath(role));
         router.refresh();
       } catch {
         if (active) setCheckingSession(false);
@@ -83,7 +84,7 @@ export default function LoginPage() {
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [nextPath, router]);
 
   if (checkingSession) {
     return (
@@ -154,6 +155,7 @@ function MemberPortal() {
 
 function MemberLoginForm() {
   const router = useRouter();
+  const nextPath = useSafeNextPath();
   const [email, setEmail] = useState(isMock ? "sia@example.com" : "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -161,7 +163,7 @@ function MemberLoginForm() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (isMock) { router.replace("/member"); return; }
+    if (isMock) { router.replace(nextPath ?? "/member"); return; }
     setLoading(true); setError("");
     try {
       const { createClient } = await import("@/supabase/client");
@@ -176,7 +178,7 @@ function MemberLoginForm() {
         return;
       }
       await trackClientEvent({ eventName: "login_completed", path: "/login", userRole: role });
-      router.replace(getRoleHomePath(role));
+      router.replace(nextPath ?? getRoleHomePath(role));
       router.refresh();
     } catch { setError("로그인 중 오류가 발생했습니다."); setLoading(false); }
   }
@@ -207,6 +209,7 @@ function MemberLoginForm() {
 
 function MemberSignupForm() {
   const router = useRouter();
+  const nextPath = useSafeNextPath();
   const [name, setName] = useState("");
   const [nickname, setNickname] = useState("");
   const [email, setEmail] = useState("");
@@ -297,7 +300,7 @@ function MemberSignupForm() {
           });
         }
         await trackClientEvent({ eventName: "sign_up_completed", path: "/login", userRole: "member" });
-        router.replace("/member"); router.refresh();
+        router.replace(nextPath ?? "/member"); router.refresh();
       } else { setDone(true); }
     } catch { setError("가입 중 오류가 발생했습니다."); setLoading(false); }
   }
@@ -380,6 +383,7 @@ function BrandPortal() {
 
 function BrandLoginForm() {
   const router = useRouter();
+  const nextPath = useSafeNextPath();
   const [email, setEmail] = useState(isMock ? "brand@nova.example.com" : "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -387,7 +391,7 @@ function BrandLoginForm() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (isMock) { router.replace("/brand"); return; }
+    if (isMock) { router.replace(nextPath ?? "/brand"); return; }
     setLoading(true); setError("");
     try {
       const { createClient } = await import("@/supabase/client");
@@ -402,7 +406,7 @@ function BrandLoginForm() {
         return;
       }
       await trackClientEvent({ eventName: "login_completed", path: "/login", userRole: role });
-      router.replace(getRoleHomePath(role));
+      router.replace(nextPath ?? getRoleHomePath(role));
       router.refresh();
     } catch { setError("로그인 중 오류가 발생했습니다."); setLoading(false); }
   }
@@ -450,6 +454,22 @@ function getRoleHomePath(role: AuthRole) {
   if (role === "admin") return "/admin";
   if (role === "brand") return "/brand";
   return "/member";
+}
+
+function getSafeNextPath(value: string | null) {
+  if (!value) return null;
+  if (!value.startsWith("/")) return null;
+  if (value.startsWith("//")) return null;
+  if (value.startsWith("/login")) return null;
+  return value;
+}
+
+function useSafeNextPath() {
+  return useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const value = new URLSearchParams(window.location.search).get("next");
+    return getSafeNextPath(value);
+  }, []);
 }
 
 async function logoutAfterRoleMismatch() {
